@@ -334,7 +334,12 @@ class MILAggregation(torch.nn.Module):
             self.attention_pooling = MILAttention(input_dim=input_dim)
 
         elif self.aggregation == 'TransMIL':
-            self.transmil_pooling = TransMILPooling(n_classes=self.nClasses )
+            if self.backbone == 'vgg16':
+                input_dim = 512
+            elif self.backbone == 'resnet50':
+                input_dim = 1000
+
+            self.transmil_pooling = TransMILPooling(n_classes=self.nClasses, input_dim=input_dim)
 
 
     def forward(self, feats):
@@ -531,16 +536,18 @@ class Attn_Net_Gated(nn.Module):
 #########################################################################
 ## Reference for principal code: https://github.com/huawei-noah/CV-Backbones/blob/ac846b080a694df8e224000582a668b1bdc070a1/tnt_pytorch/tnt.py#L305
 class TransMILPooling(nn.Module):
-    def __init__(self, n_classes):
+    def __init__(self, n_classes, input_dim=512):
         super(TransMILPooling, self).__init__()
         self.n_classes = n_classes
-        self.pos_layer = PPEG(dim=512)
-        self._fc1 = nn.Sequential(nn.Linear(1024, 512), nn.ReLU())
-        self.cls_token = nn.Parameter(torch.randn(1, 1, 512))
-        self.layer1 = TransLayer(dim=512)
-        self.layer2 = TransLayer(dim=512)
-        self.norm = nn.LayerNorm(512)
-        self.final_fc = torch.nn.Sequential(torch.nn.Linear(512, self.n_classes))
+        self.input_dim = input_dim
+
+        self.pos_layer = PPEG(dim=self.input_dim)
+        self._fc1 = nn.Sequential(nn.Linear(1024, self.input_dim), nn.ReLU())
+        self.cls_token = nn.Parameter(torch.randn(1, 1, self.input_dim))
+        self.layer1 = TransLayer(dim=self.input_dim)
+        self.layer2 = TransLayer(dim=self.input_dim)
+        self.norm = nn.LayerNorm(self.input_dim)
+        self.final_fc = torch.nn.Sequential(torch.nn.Linear(self.input_dim, self.n_classes))
         # self.backbone_extractor = AI4SKINClassifier()
         self.final_relu = torch.nn.ReLU()
 
