@@ -11,9 +11,9 @@ def load_CV_fold_dataset(fold_id, magnification_level, pred_column, pred_mode, c
     ##############################################
 
     # Directories
-    dir_data_frame = '../data/patient-clinical-data.xlsx'
-    dir_results = '../data/results/'
-    dir_excels_class_perc = "../data/patches_paths_class_perc/"
+    dir_data_frame = '../data/BCNB/patient-clinical-data.xlsx'
+    dir_results = '../output/results/'
+    dir_excels_class_perc = "../data/BCNB/patches_paths_class_perc/"
 
     # Set input shape of the images depending on the chosen magnification
     if magnification_level == "20x":
@@ -56,9 +56,9 @@ def load_CV_fold_dataset(fold_id, magnification_level, pred_column, pred_mode, c
     df = df[df[pred_column].notna()]  # Clean the rows including NaN values in the column that we want to predict
 
     # Select df rows by train, test, val split
-    train_ids_df = df[df["Patient ID"].isin(train_ids)]  # [:100]#.sample(30)
-    val_ids_df = df[df["Patient ID"].isin(val_ids)]  # [:50]#.sample(20)
-    test_ids_df = df[df["Patient ID"].isin(test_ids)]  # [:50]#.sample(20)
+    train_ids_df = df[df["Patient ID"].isin(train_ids)]#[:100]#.sample(30)
+    val_ids_df = df[df["Patient ID"].isin(val_ids)]#[:50]#.sample(20)
+    test_ids_df = df[df["Patient ID"].isin(test_ids)]#[:50]#.sample(20)
 
     # Read the excel including the images paths and their tissue percentage
     train_class_perc_patches_paths_df = pd.read_csv(dir_excels_class_perc + "train_patches_class_perc_0_tp.csv")
@@ -146,17 +146,12 @@ def main_cv(args):
     bag_id = 'Patient ID'
     pred_column = "Molecular subtype"
     regions_filled = "fullWSIs_TP_0"
+    pred_modes = args.pred_modes
     # pred_mode = "LUMINALAvsLAUMINALBvsHER2vsTNBC"
     # pred_mode = "LUMINALSvsHER2vsTNBC"
-    pred_mode = "OTHERvsTNBC"
+    # pred_mode = "OTHERvsTNBC"
 
-    # Set classes depending on training task
-    if pred_mode == "LUMINALAvsLAUMINALBvsHER2vsTNBC":
-        classes = ['Luminal A', 'Luminal B', 'HER2(+)', 'Triple negative']
-    elif pred_mode == "LUMINALSvsHER2vsTNBC":
-        classes = ['Luminal', 'HER2(+)', 'Triple negative']
-    elif pred_mode == "OTHERvsTNBC":
-        classes = ['Other', 'Triple negative']
+
 
     ordered = True
     patch_size = 512
@@ -184,10 +179,10 @@ def main_cv(args):
     for fold_id in folds_ids:
         print(f"[CV FOLD {fold_id}]")
 
-        # Retrieve dataset split for each fold
-        dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test = load_CV_fold_dataset(fold_id, magnification_level, pred_column, pred_mode, classes, regions_filled, dir_cv_dataset_splitting_path,
-                                 ordered, patch_size, max_instances, data_augmentation, stain_normalization,
-                                 images_on_ram, include_background, balanced_train_datagen, tissue_percentages_max)
+        # # Retrieve dataset split for each fold
+        # dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test = load_CV_fold_dataset(fold_id, magnification_level, pred_column, pred_mode, classes, regions_filled, dir_cv_dataset_splitting_path,
+        #                          ordered, patch_size, max_instances, data_augmentation, stain_normalization,
+        #                          images_on_ram, include_background, balanced_train_datagen, tissue_percentages_max)
 
         # Launch set of experiments
         network_backbones = args.network_backbones
@@ -195,91 +190,109 @@ def main_cv(args):
         learning_rates = args.learning_rates
         optimizers_types = args.optimizers_types
 
-        for network_backbone in network_backbones:
-            for aggregation in aggregations:
-                for learning_rate in learning_rates:
-                    for optimizer_type in optimizers_types:
 
-                        if "Patch_GCN" in aggregation:
-                            run_name = "PM_" + str(pred_mode) + "_AGGR_" + str(args.aggregation) + "_ML_" + str(
-                                magnification_level) + "_NN_bb_" + str(args.network_backbone) + "_FBB_" + str(
-                                args.freeze_bb_weights) + "_PS_" + str(patch_size) + "_DA_" + str(
-                                data_augmentation) + "_SN_" + str(
-                                stain_normalization) + "_L_" + args.criterion + "_E_" + str(args.epochs) + "_LR_" + str(
-                                args.lr).replace(
-                                ".", "") + "_Order_" + str(ordered) + "_Optim_" + str(args.optimizer_type) + "_N_" + str(
-                                max_instances) + "_BDG_" + str(balanced_train_datagen) + "_OWD_" + str(
-                                args.optimizer_weight_decay) + "_TP_" + str(tissue_percentages_max) + "_KNN_" + str(
-                                knn) + "_GCNL_" + str(args.num_gcn_layers) + "_EF_" + str(
-                                include_edge_features) + "_CVFold_" + str(fold_id)
-                        else:
-                            run_name = "PM_" + str(pred_mode) + "_AGGR_" + str(aggregation) + "_ML_" + str(
-                                magnification_level) + "_NN_bb_" + str(network_backbone) + "_FBB_" + str(
-                                args.freeze_bb_weights) + "_PS_" + str(patch_size) + "_DA_" + str(
-                                data_augmentation) + "_SN_" + str(
-                                stain_normalization) + "_L_" + args.criterion + "_E_" + str(args.epochs) + "_LR_" + str(
-                                learning_rate).replace(
-                                ".", "") + "_Order_" + str(ordered) + "_Optim_" + str(optimizer_type) + "_N_" + str(
-                                max_instances) + "_BDG_" + str(balanced_train_datagen) + "_OWD_" + str(
-                                args.optimizer_weight_decay) + "_TP_" + str(tissue_percentages_max) + "_CVFold_" + str(
-                                fold_id)
+        for pred_mode in pred_modes:
 
-                        # Prepare output directories
-                        dir_results = '../data/results/'
-                        dir_out_gnrl = os.path.join(dir_results, args.experiment_name)
-                        dir_out_main = os.path.join(dir_results, args.experiment_name, run_name.split("_CVFold_")[0])
-                        # dir_out = os.path.join(dir_out_main, run_name)
-                        dir_out = os.path.join(dir_out_main, "CVFold_" + str(fold_id))
-                        if not os.path.isdir(dir_results):
-                            os.mkdir(dir_results)
-                        if not os.path.isdir(dir_out_gnrl):
-                            os.mkdir(dir_out_gnrl)
-                        if not os.path.isdir(dir_out_main):
-                            os.mkdir(dir_out_main)
-                        if not os.path.isdir(dir_out):
-                            os.mkdir(dir_out)
+            # Set classes depending on training task
+            if pred_mode == "LUMINALAvsLAUMINALBvsHER2vsTNBC":
+                classes = ['Luminal A', 'Luminal B', 'HER2(+)', 'Triple negative']
+            elif pred_mode == "LUMINALSvsHER2vsTNBC":
+                classes = ['Luminal', 'HER2(+)', 'Triple negative']
+            elif pred_mode == "OTHERvsTNBC":
+                classes = ['Other', 'Triple negative']
 
-                        # Create argument parser for training
-                        parser_train = argparse.ArgumentParser()
-                        parser_train.add_argument("--aggregation", default=aggregation,
-                                            type=str)  # max, mean, TransMIL, TransMIL_pablo, Patch_GCN_online, Patch_GCN_offline
-                        parser_train.add_argument("--lr", default=learning_rate, type=float)  # Learning rate
-                        parser_train.add_argument("--network_backbone", default=network_backbone,
-                                            type=str)  # vgg16, resnet50, vgg16_512
-                        parser_train.add_argument("--optimizer_type", default=optimizer_type,
-                                            type=str)  # vgg16, resnet50, vgg16_512
-                        parser_train.add_argument("--run_name", default=run_name,
-                                            type=str)
-                        parser_train.add_argument("--classes", default=classes,
-                                            type=list)
-                        parser_train.add_argument("--include_background", default=include_background,
-                                            type=str)
-                        parser_train.add_argument("--patch_size", default=patch_size,
-                                            type=int)
-                        parser_train.add_argument("--data_augmentation", default=data_augmentation,
-                                            type=str)
-                        parser_train.add_argument("--stain_normalization", default=stain_normalization,
-                                            type=bool)
-                        parser_train.add_argument("--regions_filled", default=regions_filled,
-                                            type=str)
-                        parser_train.add_argument("--max_instances", default=max_instances,
-                                            type=int)
-                        parser_train.add_argument("--ordered", default=ordered,
-                                            type=bool)
-                        parser_train.add_argument("--pred_mode", default=pred_mode,
-                                            type=str)
-                        parser_train.add_argument("--balanced_train_datagen", default=balanced_train_datagen,
-                                            type=bool)
-                        parser_train.add_argument("--tissue_percentages_max", default=tissue_percentages_max,
-                                            type=str)
-                        parser_train.add_argument("--dir_out", default=dir_out,
-                                            type=str)
-                        parser_train.add_argument("--pred_column", default=pred_column,
-                                            type=str)
+            # Retrieve dataset split for each fold
+            dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test = load_CV_fold_dataset(
+                fold_id, magnification_level, pred_column, pred_mode, classes, regions_filled,
+                dir_cv_dataset_splitting_path,
+                ordered, patch_size, max_instances, data_augmentation, stain_normalization,
+                images_on_ram, include_background, balanced_train_datagen, tissue_percentages_max)
+
+            for network_backbone in network_backbones:
+                for aggregation in aggregations:
+                    for learning_rate in learning_rates:
+                        for optimizer_type in optimizers_types:
+
+                            if "Patch_GCN" in aggregation:
+                                run_name = "PM_" + str(pred_mode) + "_AGGR_" + str(args.aggregation) + "_ML_" + str(
+                                    magnification_level) + "_NN_bb_" + str(args.network_backbone) + "_FBB_" + str(
+                                    args.freeze_bb_weights) + "_PS_" + str(patch_size) + "_DA_" + str(
+                                    data_augmentation) + "_SN_" + str(
+                                    stain_normalization) + "_L_" + args.criterion + "_E_" + str(args.epochs) + "_LR_" + str(
+                                    args.lr).replace(
+                                    ".", "") + "_Order_" + str(ordered) + "_Optim_" + str(args.optimizer_type) + "_N_" + str(
+                                    max_instances) + "_BDG_" + str(balanced_train_datagen) + "_OWD_" + str(
+                                    args.optimizer_weight_decay) + "_TP_" + str(tissue_percentages_max) + "_KNN_" + str(
+                                    knn) + "_GCNL_" + str(args.num_gcn_layers) + "_EF_" + str(
+                                    include_edge_features) + "_CVFold_" + str(fold_id)
+                            else:
+                                run_name = "PM_" + str(pred_mode) + "_AGGR_" + str(aggregation) + "_ML_" + str(
+                                    magnification_level) + "_NN_bb_" + str(network_backbone) + "_FBB_" + str(
+                                    args.freeze_bb_weights) + "_PS_" + str(patch_size) + "_DA_" + str(
+                                    data_augmentation) + "_SN_" + str(
+                                    stain_normalization) + "_L_" + args.criterion + "_E_" + str(args.epochs) + "_LR_" + str(
+                                    learning_rate).replace(
+                                    ".", "") + "_Order_" + str(ordered) + "_Optim_" + str(optimizer_type) + "_N_" + str(
+                                    max_instances) + "_BDG_" + str(balanced_train_datagen) + "_OWD_" + str(
+                                    args.optimizer_weight_decay) + "_TP_" + str(tissue_percentages_max) + "_CVFold_" + str(
+                                    fold_id)
+
+                            # Prepare output directories
+                            dir_results = '../data/results/'
+                            dir_out_gnrl = os.path.join(dir_results, args.experiment_name)
+                            dir_out_main = os.path.join(dir_results, args.experiment_name, run_name.split("_CVFold_")[0])
+                            # dir_out = os.path.join(dir_out_main, run_name)
+                            dir_out = os.path.join(dir_out_main, "CVFold_" + str(fold_id))
+                            if not os.path.isdir(dir_results):
+                                os.mkdir(dir_results)
+                            if not os.path.isdir(dir_out_gnrl):
+                                os.mkdir(dir_out_gnrl)
+                            if not os.path.isdir(dir_out_main):
+                                os.mkdir(dir_out_main)
+                            if not os.path.isdir(dir_out):
+                                os.mkdir(dir_out)
+
+                            # Create argument parser for training
+                            parser_train = argparse.ArgumentParser()
+                            parser_train.add_argument("--aggregation", default=aggregation,
+                                                type=str)  # max, mean, TransMIL, TransMIL_pablo, Patch_GCN_online, Patch_GCN_offline
+                            parser_train.add_argument("--lr", default=learning_rate, type=float)  # Learning rate
+                            parser_train.add_argument("--network_backbone", default=network_backbone,
+                                                type=str)  # vgg16, resnet50, vgg16_512
+                            parser_train.add_argument("--optimizer_type", default=optimizer_type,
+                                                type=str)  # vgg16, resnet50, vgg16_512
+                            parser_train.add_argument("--run_name", default=run_name,
+                                                type=str)
+                            parser_train.add_argument("--classes", default=classes,
+                                                type=list)
+                            parser_train.add_argument("--include_background", default=include_background,
+                                                type=str)
+                            parser_train.add_argument("--patch_size", default=patch_size,
+                                                type=int)
+                            parser_train.add_argument("--data_augmentation", default=data_augmentation,
+                                                type=str)
+                            parser_train.add_argument("--stain_normalization", default=stain_normalization,
+                                                type=bool)
+                            parser_train.add_argument("--regions_filled", default=regions_filled,
+                                                type=str)
+                            parser_train.add_argument("--max_instances", default=max_instances,
+                                                type=int)
+                            parser_train.add_argument("--ordered", default=ordered,
+                                                type=bool)
+                            parser_train.add_argument("--pred_mode", default=pred_mode,
+                                                type=str)
+                            parser_train.add_argument("--balanced_train_datagen", default=balanced_train_datagen,
+                                                type=bool)
+                            parser_train.add_argument("--tissue_percentages_max", default=tissue_percentages_max,
+                                                type=str)
+                            parser_train.add_argument("--dir_out", default=dir_out,
+                                                type=str)
+                            parser_train.add_argument("--pred_column", default=pred_column,
+                                                type=str)
 
 
-                        args_train = parser_train.parse_args()
-                        train_exp(args_train,dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test)
+                            args_train = parser_train.parse_args()
+                            train_exp(args_train,dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test)
 
         print("holu")
     print("holu")
@@ -321,7 +334,7 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
 
     if args.train_test_mode == "train":
         # MlFlow Parameters
-        mlruns_folder = "./mlruns"
+        mlruns_folder = "../output/mlruns"
         mlflow_experiment_name = args.experiment_name
         mlflow_run_name = args_train.run_name
 
@@ -338,6 +351,8 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
         mlflow.log_param("ordered", args_train.ordered)
         mlflow.log_param("pred_mode", args_train.pred_mode)
         mlflow.log_param("magnification_level", magnification_level)
+        mlflow.log_param("pred_mode", args_train.pred_mode)
+
 
         mlflow.log_param("nn_backbone", args_train.network_backbone)
         mlflow.log_param("pretrained", args.pretrained)
@@ -427,6 +442,7 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
                           pred_column=args_train.pred_column, pred_mode=args_train.pred_mode, loss_function=args.loss_function)
 
 
+
 ############################################
 # Common parameters for current experiment #
 ############################################
@@ -436,14 +452,17 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
 # network_backbones = ['resnet50','vgg16'] # ['vgg16', 'resnet50']
 # aggregations = ['max', 'mean', 'attention'] #['max'] # ['mean', 'max']
 # optimizers_types = ['sgd', 'adam']
-# magnification_level = "10x" # "10x"
+# magnification_level = "10x" # "10x"ç
 
-experiment_name = "[11_07_2023] BB MolSub 2CLF 10x CV"
-learning_rates = [0.002, 0.0001, 0.00001, 0.000001] #[0.000001]
-network_backbones = ['vgg16', 'resnet50']
-aggregations = ['max', 'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
+#TODO: MAX AGGR, RESNET50, LR = 1E-05
+
+experiment_name = "[04_08_2023] BB MolSub 10x CV"
+learning_rates = [0.00001] #[0.000001]
+network_backbones = ['resnet50']
+aggregations = ['max']# , 'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
 optimizers_types = ['adam', 'sgd']
 magnification_level = "10x" # "10x"
+pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"]
 
 
 ##########################
@@ -452,7 +471,68 @@ magnification_level = "10x" # "10x"
 parser = argparse.ArgumentParser()
 
 # Model parameters
-parser.add_argument("--dir_cv_dataset_splitting_path", default="../data/new_CV_folds_BCNB",
+parser.add_argument("--dir_cv_dataset_splitting_path", default="../data/BCNB/new_CV_folds_BCNB",
+                    type=str)  # Directory where the folds of the new splits are stored
+parser.add_argument("--train_test_mode", default="train", type=str)  # Select train, test, test_allmymodels
+parser.add_argument("--epochs", default=100, type=int)  # Number of epochs for training
+parser.add_argument("--magnification_level", default=magnification_level, type=str)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--aggregations", default=aggregations, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--learning_rates", default=learning_rates, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--network_backbones", default=network_backbones, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--loss_function", default="cross_entropy", type=str)  # cross_entropy, kll
+parser.add_argument("--optimizers_types", default=optimizers_types, type=str)  # sgd, adam, lookahead_radam
+parser.add_argument("--pred_modes", default=pred_modes, type=str)  # "LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"
+parser.add_argument("--optimizer_weight_decay", default=0, type=float)
+parser.add_argument("--class_weights_norm", default=False,
+                    type=bool)  # Apply c_weights_norm to CrossEntropyLoss
+parser.add_argument("--freeze_bb_weights", default=False,
+                    type=bool)  # Freeze feature extractor weights. False: retrain True: transfer learning
+parser.add_argument("--pretrained", default=True, type=bool)  # Use pretrained feature extractor on ImageNet
+parser.add_argument("--criterion", default='auc', type=str)  # auc
+parser.add_argument("--mode", default="embedding", type=str)  # embedding,embedding_GNN
+parser.add_argument("--alpha_ce", default=1., type=float)
+
+# Global label to predict
+parser.add_argument("--experiment_name", default=experiment_name, type=str)
+
+# Miscellaneous
+parser.add_argument("--early_stopping", default=True, type=bool)
+parser.add_argument("--scheduler", default=True, type=bool)
+parser.add_argument("--virtual_batch_size", default=1, type=int)
+
+# # Patch GCN Parameters
+# parser.add_argument('--include_edge_features',  default=False, help='Include edge_features (euclidean dist) in  the graph')
+# parser.add_argument('--num_gcn_layers',  type=int, default=5, help='# of GCN layers to use.')
+# parser.add_argument('--node_knn',  type=int, default=knn, help='# of K nearest neighbours for graph creation.')
+# parser.add_argument('--node_feature_extractor', type=str, default=node_feature_extractor, help="Feature extractor that will be used for creating the nodes of the graph.") # resnet50_3blocks_1024
+# parser.add_argument('--edge_agg',        type=str, default='spatial', help="What edge relationship to use for aggregation.") # It is possible to use spatial or latent edge aggregation
+# parser.add_argument('--resample',        type=float, default=0.00, help='Dropping out random patches.')
+# parser.add_argument('--drop_out',        action='store_true', default=True, help='Enable dropout (p=0.25)')
+#
+
+args = parser.parse_args()
+main_cv(args)
+
+
+
+#TODO: MEAN AGGR, RESNET50, LR = 1E-04
+
+experiment_name = "[04_08_2023] BB MolSub 10x CV"
+learning_rates = [0.0001] #[0.000001]
+network_backbones = ['resnet50']
+aggregations = ['mean']# , 'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
+optimizers_types = ['adam', 'sgd']
+magnification_level = "10x" # "10x"
+pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"]
+
+
+##########################
+# CREATE ARGUMENT PARSER #
+##########################
+parser = argparse.ArgumentParser()
+
+# Model parameters
+parser.add_argument("--dir_cv_dataset_splitting_path", default="../data/BCNB/new_CV_folds_BCNB",
                     type=str)  # Directory where the folds of the new splits are stored
 parser.add_argument("--train_test_mode", default="train", type=str)  # Select train, test, test_allmymodels
 parser.add_argument("--epochs", default=100, type=int)  # Number of epochs for training
@@ -492,3 +572,245 @@ parser.add_argument("--virtual_batch_size", default=1, type=int)
 
 args = parser.parse_args()
 main_cv(args)
+
+
+#TODO: ATT AGGR, RESNET50, LR = 1E-05
+
+experiment_name = "[04_08_2023] BB MolSub 10x CV"
+learning_rates = [0.00001] #[0.000001]
+network_backbones = ['resnet50']
+aggregations = ['attention']# , 'max',  'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
+optimizers_types = ['adam', 'sgd']
+magnification_level = "10x" # "10x"
+pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"]
+
+
+##########################
+# CREATE ARGUMENT PARSER #
+##########################
+parser = argparse.ArgumentParser()
+
+# Model parameters
+parser.add_argument("--dir_cv_dataset_splitting_path", default="../data/BCNB/new_CV_folds_BCNB",
+                    type=str)  # Directory where the folds of the new splits are stored
+parser.add_argument("--train_test_mode", default="train", type=str)  # Select train, test, test_allmymodels
+parser.add_argument("--epochs", default=100, type=int)  # Number of epochs for training
+parser.add_argument("--magnification_level", default=magnification_level, type=str)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--aggregations", default=aggregations, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--learning_rates", default=learning_rates, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--network_backbones", default=network_backbones, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--loss_function", default="cross_entropy", type=str)  # cross_entropy, kll
+parser.add_argument("--optimizers_types", default=optimizers_types, type=str)  # sgd, adam, lookahead_radam
+parser.add_argument("--optimizer_weight_decay", default=0, type=float)
+parser.add_argument("--class_weights_norm", default=False,
+                    type=bool)  # Apply c_weights_norm to CrossEntropyLoss
+parser.add_argument("--freeze_bb_weights", default=False,
+                    type=bool)  # Freeze feature extractor weights. False: retrain True: transfer learning
+parser.add_argument("--pretrained", default=True, type=bool)  # Use pretrained feature extractor on ImageNet
+parser.add_argument("--criterion", default='auc', type=str)  # auc
+parser.add_argument("--mode", default="embedding", type=str)  # embedding,embedding_GNN
+parser.add_argument("--alpha_ce", default=1., type=float)
+
+# Global label to predict
+parser.add_argument("--experiment_name", default=experiment_name, type=str)
+
+# Miscellaneous
+parser.add_argument("--early_stopping", default=True, type=bool)
+parser.add_argument("--scheduler", default=True, type=bool)
+parser.add_argument("--virtual_batch_size", default=1, type=int)
+
+# # Patch GCN Parameters
+# parser.add_argument('--include_edge_features',  default=False, help='Include edge_features (euclidean dist) in  the graph')
+# parser.add_argument('--num_gcn_layers',  type=int, default=5, help='# of GCN layers to use.')
+# parser.add_argument('--node_knn',  type=int, default=knn, help='# of K nearest neighbours for graph creation.')
+# parser.add_argument('--node_feature_extractor', type=str, default=node_feature_extractor, help="Feature extractor that will be used for creating the nodes of the graph.") # resnet50_3blocks_1024
+# parser.add_argument('--edge_agg',        type=str, default='spatial', help="What edge relationship to use for aggregation.") # It is possible to use spatial or latent edge aggregation
+# parser.add_argument('--resample',        type=float, default=0.00, help='Dropping out random patches.')
+# parser.add_argument('--drop_out',        action='store_true', default=True, help='Enable dropout (p=0.25)')
+#
+
+args = parser.parse_args()
+main_cv(args)
+
+
+#TODO: TRANSMIL AGGR, RESNET50, LR = X
+
+
+#TODO: MAX AGGR, VGG16, LR = 1E-04
+experiment_name = "[04_08_2023] BB MolSub 10x CV"
+learning_rates = [0.0001] #[0.000001]
+network_backbones = ['vgg16'] #'vgg16', 'resnet50'
+aggregations = ['max']# , 'max',  'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
+optimizers_types = ['adam', 'sgd']
+magnification_level = "10x" # "10x"
+pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"]
+
+
+##########################
+# CREATE ARGUMENT PARSER #
+##########################
+parser = argparse.ArgumentParser()
+
+# Model parameters
+parser.add_argument("--dir_cv_dataset_splitting_path", default="../data/BCNB/new_CV_folds_BCNB",
+                    type=str)  # Directory where the folds of the new splits are stored
+parser.add_argument("--train_test_mode", default="train", type=str)  # Select train, test, test_allmymodels
+parser.add_argument("--epochs", default=100, type=int)  # Number of epochs for training
+parser.add_argument("--magnification_level", default=magnification_level, type=str)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--aggregations", default=aggregations, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--learning_rates", default=learning_rates, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--network_backbones", default=network_backbones, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--loss_function", default="cross_entropy", type=str)  # cross_entropy, kll
+parser.add_argument("--optimizers_types", default=optimizers_types, type=str)  # sgd, adam, lookahead_radam
+parser.add_argument("--optimizer_weight_decay", default=0, type=float)
+parser.add_argument("--class_weights_norm", default=False,
+                    type=bool)  # Apply c_weights_norm to CrossEntropyLoss
+parser.add_argument("--freeze_bb_weights", default=False,
+                    type=bool)  # Freeze feature extractor weights. False: retrain True: transfer learning
+parser.add_argument("--pretrained", default=True, type=bool)  # Use pretrained feature extractor on ImageNet
+parser.add_argument("--criterion", default='auc', type=str)  # auc
+parser.add_argument("--mode", default="embedding", type=str)  # embedding,embedding_GNN
+parser.add_argument("--alpha_ce", default=1., type=float)
+
+# Global label to predict
+parser.add_argument("--experiment_name", default=experiment_name, type=str)
+
+# Miscellaneous
+parser.add_argument("--early_stopping", default=True, type=bool)
+parser.add_argument("--scheduler", default=True, type=bool)
+parser.add_argument("--virtual_batch_size", default=1, type=int)
+
+# # Patch GCN Parameters
+# parser.add_argument('--include_edge_features',  default=False, help='Include edge_features (euclidean dist) in  the graph')
+# parser.add_argument('--num_gcn_layers',  type=int, default=5, help='# of GCN layers to use.')
+# parser.add_argument('--node_knn',  type=int, default=knn, help='# of K nearest neighbours for graph creation.')
+# parser.add_argument('--node_feature_extractor', type=str, default=node_feature_extractor, help="Feature extractor that will be used for creating the nodes of the graph.") # resnet50_3blocks_1024
+# parser.add_argument('--edge_agg',        type=str, default='spatial', help="What edge relationship to use for aggregation.") # It is possible to use spatial or latent edge aggregation
+# parser.add_argument('--resample',        type=float, default=0.00, help='Dropping out random patches.')
+# parser.add_argument('--drop_out',        action='store_true', default=True, help='Enable dropout (p=0.25)')
+#
+
+args = parser.parse_args()
+main_cv(args)
+
+
+
+#TODO: MEAN AGGR, VGG16, LR = 2E-03
+
+experiment_name = "[04_08_2023] BB MolSub 10x CV"
+learning_rates = [0.002] #[0.000001]
+network_backbones = ['vgg16'] #'vgg16', 'resnet50'
+aggregations = ['mean']# , 'max',  'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
+optimizers_types = ['adam', 'sgd']
+magnification_level = "10x" # "10x"
+pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"]
+
+
+##########################
+# CREATE ARGUMENT PARSER #
+##########################
+parser = argparse.ArgumentParser()
+
+# Model parameters
+parser.add_argument("--dir_cv_dataset_splitting_path", default="../data/BCNB/new_CV_folds_BCNB",
+                    type=str)  # Directory where the folds of the new splits are stored
+parser.add_argument("--train_test_mode", default="train", type=str)  # Select train, test, test_allmymodels
+parser.add_argument("--epochs", default=100, type=int)  # Number of epochs for training
+parser.add_argument("--magnification_level", default=magnification_level, type=str)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--aggregations", default=aggregations, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--learning_rates", default=learning_rates, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--network_backbones", default=network_backbones, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--loss_function", default="cross_entropy", type=str)  # cross_entropy, kll
+parser.add_argument("--optimizers_types", default=optimizers_types, type=str)  # sgd, adam, lookahead_radam
+parser.add_argument("--optimizer_weight_decay", default=0, type=float)
+parser.add_argument("--class_weights_norm", default=False,
+                    type=bool)  # Apply c_weights_norm to CrossEntropyLoss
+parser.add_argument("--freeze_bb_weights", default=False,
+                    type=bool)  # Freeze feature extractor weights. False: retrain True: transfer learning
+parser.add_argument("--pretrained", default=True, type=bool)  # Use pretrained feature extractor on ImageNet
+parser.add_argument("--criterion", default='auc', type=str)  # auc
+parser.add_argument("--mode", default="embedding", type=str)  # embedding,embedding_GNN
+parser.add_argument("--alpha_ce", default=1., type=float)
+
+# Global label to predict
+parser.add_argument("--experiment_name", default=experiment_name, type=str)
+
+# Miscellaneous
+parser.add_argument("--early_stopping", default=True, type=bool)
+parser.add_argument("--scheduler", default=True, type=bool)
+parser.add_argument("--virtual_batch_size", default=1, type=int)
+
+# # Patch GCN Parameters
+# parser.add_argument('--include_edge_features',  default=False, help='Include edge_features (euclidean dist) in  the graph')
+# parser.add_argument('--num_gcn_layers',  type=int, default=5, help='# of GCN layers to use.')
+# parser.add_argument('--node_knn',  type=int, default=knn, help='# of K nearest neighbours for graph creation.')
+# parser.add_argument('--node_feature_extractor', type=str, default=node_feature_extractor, help="Feature extractor that will be used for creating the nodes of the graph.") # resnet50_3blocks_1024
+# parser.add_argument('--edge_agg',        type=str, default='spatial', help="What edge relationship to use for aggregation.") # It is possible to use spatial or latent edge aggregation
+# parser.add_argument('--resample',        type=float, default=0.00, help='Dropping out random patches.')
+# parser.add_argument('--drop_out',        action='store_true', default=True, help='Enable dropout (p=0.25)')
+#
+
+args = parser.parse_args()
+main_cv(args)
+
+
+#TODO: ATT AGGR, VGG16, LR = 2E-03
+
+experiment_name = "[04_08_2023] BB MolSub 10x CV"
+learning_rates = [0.002] #[0.000001]
+network_backbones = ['vgg16'] #'vgg16', 'resnet50'
+aggregations = ['max']# , 'max',  'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
+optimizers_types = ['adam', 'sgd']
+magnification_level = "10x" # "10x"
+pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"]
+
+
+##########################
+# CREATE ARGUMENT PARSER #
+##########################
+parser = argparse.ArgumentParser()
+
+# Model parameters
+parser.add_argument("--dir_cv_dataset_splitting_path", default="../data/BCNB/new_CV_folds_BCNB",
+                    type=str)  # Directory where the folds of the new splits are stored
+parser.add_argument("--train_test_mode", default="train", type=str)  # Select train, test, test_allmymodels
+parser.add_argument("--epochs", default=100, type=int)  # Number of epochs for training
+parser.add_argument("--magnification_level", default=magnification_level, type=str)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--aggregations", default=aggregations, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--learning_rates", default=learning_rates, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--network_backbones", default=network_backbones, type=list)  # # [BCNB] 5x, 10x, 20x
+parser.add_argument("--loss_function", default="cross_entropy", type=str)  # cross_entropy, kll
+parser.add_argument("--optimizers_types", default=optimizers_types, type=str)  # sgd, adam, lookahead_radam
+parser.add_argument("--optimizer_weight_decay", default=0, type=float)
+parser.add_argument("--class_weights_norm", default=False,
+                    type=bool)  # Apply c_weights_norm to CrossEntropyLoss
+parser.add_argument("--freeze_bb_weights", default=False,
+                    type=bool)  # Freeze feature extractor weights. False: retrain True: transfer learning
+parser.add_argument("--pretrained", default=True, type=bool)  # Use pretrained feature extractor on ImageNet
+parser.add_argument("--criterion", default='auc', type=str)  # auc
+parser.add_argument("--mode", default="embedding", type=str)  # embedding,embedding_GNN
+parser.add_argument("--alpha_ce", default=1., type=float)
+
+# Global label to predict
+parser.add_argument("--experiment_name", default=experiment_name, type=str)
+
+# Miscellaneous
+parser.add_argument("--early_stopping", default=True, type=bool)
+parser.add_argument("--scheduler", default=True, type=bool)
+parser.add_argument("--virtual_batch_size", default=1, type=int)
+
+# # Patch GCN Parameters
+# parser.add_argument('--include_edge_features',  default=False, help='Include edge_features (euclidean dist) in  the graph')
+# parser.add_argument('--num_gcn_layers',  type=int, default=5, help='# of GCN layers to use.')
+# parser.add_argument('--node_knn',  type=int, default=knn, help='# of K nearest neighbours for graph creation.')
+# parser.add_argument('--node_feature_extractor', type=str, default=node_feature_extractor, help="Feature extractor that will be used for creating the nodes of the graph.") # resnet50_3blocks_1024
+# parser.add_argument('--edge_agg',        type=str, default='spatial', help="What edge relationship to use for aggregation.") # It is possible to use spatial or latent edge aggregation
+# parser.add_argument('--resample',        type=float, default=0.00, help='Dropping out random patches.')
+# parser.add_argument('--drop_out',        action='store_true', default=True, help='Enable dropout (p=0.25)')
+#
+
+args = parser.parse_args()
+main_cv(args)
+
+
+#TODO: TRANSMIL AGGR, VGG16, LR = X
