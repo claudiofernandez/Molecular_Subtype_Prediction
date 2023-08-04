@@ -1489,7 +1489,8 @@ class MILDataset_w_class_perc(object):
                                         "and class_perc_4 <= " + str(class_perc_4_max))
 
         selected_images_paths = list(filtered_rows["patch_path"])
-        selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/", "../data/") for path in selected_images_paths]
+        #selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/", "../data/") for path in selected_images_paths]
+        selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/", "../data/BCNB/preprocessing_results_bien/") for path in selected_images_paths]
 
         # Now selected_images_paths contains the paths for ALL IDs (unilike before where it only contained the ones for training)
         # Therefore, we need to filter these paths based on the content of the "Patient_ID" column of the self.data_frame (which only contains the IDs for training)
