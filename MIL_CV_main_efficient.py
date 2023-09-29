@@ -134,168 +134,6 @@ def load_CV_fold_dataset(fold_id, magnification_level, pred_column, pred_mode, c
     # Return datasets
     return dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test
 
-def main_cv(args):
-    # Effective training
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
-    CUDA_LAUNCH_BLOCKING = 1
-
-    # MIL Parameters
-    bag_id = 'Patient ID'
-    pred_column = "Molecular subtype"
-    regions_filled = "fullWSIs_TP_0"
-    pred_modes = args.pred_modes
-    # pred_mode = "LUMINALAvsLAUMINALBvsHER2vsTNBC"
-    # pred_mode = "LUMINALSvsHER2vsTNBC"
-    # pred_mode = "OTHERvsTNBC"
-
-    ordered = True
-    patch_size = 512
-    data_augmentation = "non-spatial"
-    max_instances = 100
-    stain_normalization = False
-    images_on_ram = True
-    include_background = False
-    balanced_train_datagen = True
-    tissue_percentages_max = "O_0.4-T_1-S_1-I_1-N_1"
-    magnification_level = args.magnification_level
-    #aggregation = args.aggregation
-
-    # Prepare dataset for each CV fold
-
-    dir_cv_dataset_splitting_path = args.dir_cv_dataset_splitting_path
-
-    files_folds_splitting_ids = os.listdir(dir_cv_dataset_splitting_path)
-
-    folds_ids = np.unique(np.array([fold.split("_")[1] for fold in files_folds_splitting_ids])) # find the unique folds ids
-
-    # Initialize variables
-
-    for fold_id in folds_ids:
-        print(f"[CV FOLD {fold_id}]")
-
-        # # Retrieve dataset split for each fold
-        # dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test = load_CV_fold_dataset(fold_id, magnification_level, pred_column, pred_mode, classes, regions_filled, dir_cv_dataset_splitting_path,
-        #                          ordered, patch_size, max_instances, data_augmentation, stain_normalization,
-        #                          images_on_ram, include_background, balanced_train_datagen, tissue_percentages_max)
-
-        # Launch set of experiments
-        network_backbones = args.network_backbones
-        aggregations = args.aggregations
-        learning_rates = args.learning_rates
-        optimizers_types = args.optimizers_types
-
-
-        for pred_mode in pred_modes:
-
-            # Set classes depending on training task
-            if pred_mode == "LUMINALAvsLAUMINALBvsHER2vsTNBC":
-                classes = ['Luminal A', 'Luminal B', 'HER2(+)', 'Triple negative']
-            elif pred_mode == "LUMINALSvsHER2vsTNBC":
-                classes = ['Luminal', 'HER2(+)', 'Triple negative']
-            elif pred_mode == "OTHERvsTNBC":
-                classes = ['Other', 'Triple negative']
-
-            # Retrieve dataset split for each fold
-            dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test = load_CV_fold_dataset(
-                fold_id, magnification_level, pred_column, pred_mode, classes, regions_filled,
-                dir_cv_dataset_splitting_path,
-                ordered, patch_size, max_instances, data_augmentation, stain_normalization,
-                images_on_ram, include_background, balanced_train_datagen, tissue_percentages_max)
-
-            for network_backbone in network_backbones:
-                for aggregation in aggregations:
-                    for learning_rate in learning_rates:
-                        for optimizer_type in optimizers_types:
-
-                            if "Patch_GCN" in aggregation:
-                                run_name = "PM_" + str(pred_mode) + "_AGGR_" + str(args.aggregation) + "_ML_" + str(
-                                    magnification_level) + "_NN_bb_" + str(args.network_backbone) + "_FBB_" + str(
-                                    args.freeze_bb_weights) + "_PS_" + str(patch_size) + "_DA_" + str(
-                                    data_augmentation) + "_SN_" + str(
-                                    stain_normalization) + "_L_" + args.criterion + "_E_" + str(args.epochs) + "_LR_" + str(
-                                    args.lr).replace(
-                                    ".", "") + "_Order_" + str(ordered) + "_Optim_" + str(args.optimizer_type) + "_N_" + str(
-                                    max_instances) + "_BDG_" + str(balanced_train_datagen) + "_OWD_" + str(
-                                    args.optimizer_weight_decay) + "_TP_" + str(tissue_percentages_max) + "_KNN_" + str(
-                                    knn) + "_GCNL_" + str(args.num_gcn_layers) + "_EF_" + str(
-                                    include_edge_features) + "_CVFold_" + str(fold_id)
-                            else:
-                                run_name = "PM_" + str(pred_mode) + "_AGGR_" + str(aggregation) + "_ML_" + str(
-                                    magnification_level) + "_NN_bb_" + str(network_backbone) + "_FBB_" + str(
-                                    args.freeze_bb_weights) + "_PS_" + str(patch_size) + "_DA_" + str(
-                                    data_augmentation) + "_SN_" + str(
-                                    stain_normalization) + "_L_" + args.criterion + "_E_" + str(args.epochs) + "_LR_" + str(
-                                    learning_rate).replace(
-                                    ".", "") + "_Order_" + str(ordered) + "_Optim_" + str(optimizer_type) + "_N_" + str(
-                                    max_instances) + "_BDG_" + str(balanced_train_datagen) + "_OWD_" + str(
-                                    args.optimizer_weight_decay) + "_TP_" + str(tissue_percentages_max) + "_CVFold_" + str(
-                                    fold_id)
-
-                            # Prepare output directories
-                            dir_results = '../data/results/'
-                            dir_out_gnrl = os.path.join(dir_results, args.experiment_name)
-                            dir_out_main = os.path.join(dir_results, args.experiment_name, run_name.split("_CVFold_")[0])
-                            # dir_out = os.path.join(dir_out_main, run_name)
-                            dir_out = os.path.join(dir_out_main, "CVFold_" + str(fold_id))
-                            if not os.path.isdir(dir_results):
-                                os.mkdir(dir_results)
-                            if not os.path.isdir(dir_out_gnrl):
-                                os.mkdir(dir_out_gnrl)
-                            if not os.path.isdir(dir_out_main):
-                                os.mkdir(dir_out_main)
-                            if not os.path.isdir(dir_out):
-                                os.mkdir(dir_out)
-
-                            # Create argument parser for training
-                            parser_train = argparse.ArgumentParser()
-                            parser_train.add_argument("--aggregation", default=aggregation,
-                                                type=str)  # max, mean, TransMIL, TransMIL_pablo, Patch_GCN_online, Patch_GCN_offline
-                            parser_train.add_argument("--lr", default=learning_rate, type=float)  # Learning rate
-                            parser_train.add_argument("--network_backbone", default=network_backbone,
-                                                type=str)  # vgg16, resnet50, vgg16_512
-                            parser_train.add_argument("--optimizer_type", default=optimizer_type,
-                                                type=str)  # vgg16, resnet50, vgg16_512
-                            parser_train.add_argument("--run_name", default=run_name,
-                                                type=str)
-                            parser_train.add_argument("--classes", default=classes,
-                                                type=list)
-                            parser_train.add_argument("--include_background", default=include_background,
-                                                type=str)
-                            parser_train.add_argument("--patch_size", default=patch_size,
-                                                type=int)
-                            parser_train.add_argument("--data_augmentation", default=data_augmentation,
-                                                type=str)
-                            parser_train.add_argument("--stain_normalization", default=stain_normalization,
-                                                type=bool)
-                            parser_train.add_argument("--regions_filled", default=regions_filled,
-                                                type=str)
-                            parser_train.add_argument("--max_instances", default=max_instances,
-                                                type=int)
-                            parser_train.add_argument("--ordered", default=ordered,
-                                                type=bool)
-                            parser_train.add_argument("--pred_mode", default=pred_mode,
-                                                type=str)
-                            parser_train.add_argument("--balanced_train_datagen", default=balanced_train_datagen,
-                                                type=bool)
-                            parser_train.add_argument("--tissue_percentages_max", default=tissue_percentages_max,
-                                                type=str)
-                            parser_train.add_argument("--dir_out", default=dir_out,
-                                                type=str)
-                            parser_train.add_argument("--pred_column", default=pred_column,
-                                                type=str)
-                            parser_train.add_argument("--magnification_level", default=pred_column,
-                                                type=str)
-
-
-
-                            args_train = parser_train.parse_args()
-                            train_exp(args_train,dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test)
-
-        print("holu")
-    print("holu")
-
 def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test):
 
     #################################################
@@ -443,14 +281,146 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
 
             print("Training finished.")
 
-# experiment_name = "[29_08_2023] BB MolSub 10x CV"
-# learning_rates = [0.002] #[0.000001]
-# network_backbones = ['vgg16']
-# aggregations = ['attention']# , 'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
-# optimizers_types = ['adam', 'sgd']
-# magnification_level = "10x" # "10x"
-# pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"]
 
+def main_cv(args):
+    # Effective training
+    np.random.seed(42)
+    random.seed(42)
+    torch.manual_seed(42)
+    CUDA_LAUNCH_BLOCKING = 1
+
+    # Prepare dataset for each CV fold
+    # TODO: Add relative path CV folds
+    dir_cv_dataset_splitting_path = args.dir_cv_dataset_splitting_path
+
+    files_folds_splitting_ids = os.listdir(dir_cv_dataset_splitting_path)
+
+    folds_ids = np.unique(np.array([fold.split("_")[1] for fold in files_folds_splitting_ids])) # find the unique folds ids
+
+    # Initialize variables
+
+    for fold_id in folds_ids:
+        print(f"[CV FOLD {fold_id}]")
+
+        # # Retrieve dataset split for each fold
+        # dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test = load_CV_fold_dataset(fold_id, magnification_level, pred_column, pred_mode, classes, regions_filled, dir_cv_dataset_splitting_path,
+        #                          ordered, patch_size, max_instances, data_augmentation, stain_normalization,
+        #                          images_on_ram, include_background, balanced_train_datagen, tissue_percentages_max)
+
+        # Launch set of experiments
+        network_backbones = args.network_backbones
+        aggregations = args.aggregations
+        learning_rates = args.learning_rates
+        optimizers_types = args.optimizers_types
+
+        for pred_mode in args.pred_modes:
+
+            # Set classes depending on training task
+            if pred_mode == "LUMINALAvsLAUMINALBvsHER2vsTNBC":
+                classes = ['Luminal A', 'Luminal B', 'HER2(+)', 'Triple negative']
+            elif pred_mode == "LUMINALSvsHER2vsTNBC":
+                classes = ['Luminal', 'HER2(+)', 'Triple negative']
+            elif pred_mode == "OTHERvsTNBC":
+                classes = ['Other', 'Triple negative']
+
+            # Retrieve dataset split for each fold
+            dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test = load_CV_fold_dataset(
+                fold_id, args.magnification_level, args.pred_column, pred_mode, classes, args.regions_filled,
+                dir_cv_dataset_splitting_path,
+                args.ordered, args.patch_size, args.max_instances, args.data_augmentation, args.stain_normalization,
+                args.images_on_ram, args.include_background, args.balanced_train_datagen, args.tissue_percentages_max)
+
+            for network_backbone in network_backbones:
+                for aggregation in aggregations:
+                    for learning_rate in learning_rates:
+                        for optimizer_type in optimizers_types:
+                            # TODO: fix run_name generation to list comprehension
+                            if "Patch_GCN" in aggregation:
+                                run_name = "PM_" + str(pred_mode) + "_AGGR_" + str(args.aggregation) + "_ML_" + str(
+                                    args.magnification_level) + "_NN_bb_" + str(args.network_backbone) + "_FBB_" + str(
+                                    args.freeze_bb_weights) + "_PS_" + str(args.patch_size) + "_DA_" + str(
+                                    args.data_augmentation) + "_SN_" + str(
+                                    args.stain_normalization) + "_L_" + args.criterion + "_E_" + str(args.epochs) + "_LR_" + str(
+                                    args.lr).replace(
+                                    ".", "") + "_Order_" + str(args.ordered) + "_Optim_" + str(args.optimizer_type) + "_N_" + str(
+                                    args.max_instances) + "_BDG_" + str(args.balanced_train_datagen) + "_OWD_" + str(
+                                    args.optimizer_weight_decay) + "_TP_" + str(args.tissue_percentages_max) + "_KNN_" + str(
+                                    args.knn) + "_GCNL_" + str(args.num_gcn_layers) + "_EF_" + str(
+                                    args.include_edge_features) + "_CVFold_" + str(fold_id)
+                            else:
+                                run_name = "PM_" + str(pred_mode) + "_AGGR_" + str(aggregation) + "_ML_" + str(
+                                    args.magnification_level) + "_NN_bb_" + str(network_backbone) + "_FBB_" + str(
+                                    args.freeze_bb_weights) + "_PS_" + str(args.patch_size) + "_DA_" + str(
+                                    args.data_augmentation) + "_SN_" + str(
+                                    args.stain_normalization) + "_L_" + args.criterion + "_E_" + str(args.epochs) + "_LR_" + str(
+                                    learning_rate).replace(
+                                    ".", "") + "_Order_" + str(args.ordered) + "_Optim_" + str(optimizer_type) + "_N_" + str(
+                                    args.max_instances) + "_BDG_" + str(args.balanced_train_datagen) + "_OWD_" + str(
+                                    args.optimizer_weight_decay) + "_TP_" + str(args.tissue_percentages_max) + "_CVFold_" + str(
+                                    fold_id)
+
+                            # Prepare output directories
+                            #TODO: Modify output directories vbased on relative general path and where_exec
+                            dir_results = '../data/results/'
+                            dir_out_gnrl = os.path.join(dir_results, args.experiment_name)
+                            dir_out_main = os.path.join(dir_results, args.experiment_name, run_name.split("_CVFold_")[0])
+                            # dir_out = os.path.join(dir_out_main, run_name)
+                            dir_out = os.path.join(dir_out_main, "CVFold_" + str(fold_id))
+                            if not os.path.isdir(dir_results):
+                                os.mkdir(dir_results)
+                            if not os.path.isdir(dir_out_gnrl):
+                                os.mkdir(dir_out_gnrl)
+                            if not os.path.isdir(dir_out_main):
+                                os.mkdir(dir_out_main)
+                            if not os.path.isdir(dir_out):
+                                os.mkdir(dir_out)
+
+                            # Create argument parser for training
+                            parser_train = argparse.ArgumentParser()
+                            parser_train.add_argument("--aggregation", default=aggregation,
+                                                type=str)  # max, mean, TransMIL, TransMIL_pablo, Patch_GCN_online, Patch_GCN_offline
+                            parser_train.add_argument("--lr", default=learning_rate, type=float)  # Learning rate
+                            parser_train.add_argument("--network_backbone", default=network_backbone,
+                                                type=str)  # vgg16, resnet50, vgg16_512
+                            parser_train.add_argument("--optimizer_type", default=optimizer_type,
+                                                type=str)  # vgg16, resnet50, vgg16_512
+                            parser_train.add_argument("--run_name", default=run_name,
+                                                type=str)
+                            parser_train.add_argument("--classes", default=classes,
+                                                type=list)
+                            parser_train.add_argument("--include_background", default=args.include_background,
+                                                type=str)
+                            parser_train.add_argument("--patch_size", default=args.patch_size,
+                                                type=int)
+                            parser_train.add_argument("--data_augmentation", default=args.data_augmentation,
+                                                type=str)
+                            parser_train.add_argument("--stain_normalization", default=args.stain_normalization,
+                                                type=bool)
+                            parser_train.add_argument("--regions_filled", default=args.regions_filled,
+                                                type=str)
+                            parser_train.add_argument("--max_instances", default=args.max_instances,
+                                                type=int)
+                            parser_train.add_argument("--ordered", default=args.ordered,
+                                                type=bool)
+                            parser_train.add_argument("--pred_mode", default=pred_mode,
+                                                type=str)
+                            parser_train.add_argument("--balanced_train_datagen", default=args.balanced_train_datagen,
+                                                type=bool)
+                            parser_train.add_argument("--tissue_percentages_max", default=args.tissue_percentages_max,
+                                                type=str)
+                            parser_train.add_argument("--dir_out", default=dir_out,
+                                                type=str)
+                            parser_train.add_argument("--pred_column", default=args.pred_column,
+                                                type=str)
+                            parser_train.add_argument("--magnification_level", default=args.magnification_level,
+                                                type=str)
+
+
+                            args_train = parser_train.parse_args()
+                            train_exp(args_train,dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test)
+
+        print("holu")
+    print("holu")
 
 ##########################
 # CREATE ARGUMENT PARSER #
@@ -460,7 +430,13 @@ parser = argparse.ArgumentParser()
 # TODO: Put dir_cv_dataset_splitting_path inside CV folds (relative path from a general_data_dir)
 parser.add_argument("--dir_cv_dataset_splitting_path", default="../data/BCNB/new_CV_folds_BCNB",
                     type=str)  # Directory where the folds of the new splits are stored
-# TODO: add where exec argument with all directories to slurm/local
+
+# Directories.
+parser.add_argument('--gnrl_data_dir', type=str, default='.')
+parser.add_argument('--where_exec', type=str, default="dgx_gpu", help="slurm or local, dgx_gpu")
+parser.add_argument('--training_type', type=str, default="CV" , help='CV or Full Dataset')
+parser.add_argument('--dataset', type=str, default="BCNB", help='BCNB or CLARIFY_DB')
+
 #MLFlow configuration
 parser.add_argument("--experiment_name", default="[29_09_2023] BB MolSub 10x BCNB Final", type=str,  help='Name for experiment in MLFlow')
 
@@ -482,6 +458,21 @@ parser.add_argument("--pred_modes", default=["OTHERvsTNBC"], type=list, help="Ch
 parser.add_argument("--network_backbones", default=['vgg16'], type=list, help="Choose (1 or more) betwwen: 'vgg16', 'resnet50'")
 parser.add_argument("--magnification_level", default="5x", type=str, help="5x, 10x, 20x")
 parser.add_argument("--aggregations", default=["mean"], type=list, help="Choose (1 or more) between: mean', 'max' 'attention', 'TransMIL'")
+
+# MIL Parameters
+parser.add_argument("--bag_id", default="Patient ID", type=str, help="Identifier of Bags")
+parser.add_argument("--max_instances", default=100, type=int, help="Max number of instances per bag.")
+parser.add_argument("--pred_column", default="Molecular subtype", type=str, help="Name of dataframe column that you want to predict.")
+parser.add_argument("--regions_filled", default="fullWSIs_TP_0", type=str, help="")
+parser.add_argument("--ordered", default=True, type=bool, help="Ordered dataset.")
+parser.add_argument("--patch_size", default=512, type=int, help="Ordered dataset.")
+parser.add_argument("--data_augmentation", default="non-spatial", type=str, help="Type of image augmentations")
+parser.add_argument("--stain_normalization", default=False, type=bool, help="Normalize staining of the patches.")
+parser.add_argument("--images_on_ram", default=True, type=bool, help="Preload images on RAM memory")
+#TODO: remove include background
+parser.add_argument("--include_background", default=False, type=bool, help="Preload images on RAM memory")
+parser.add_argument("--balanced_train_datagen", default=True, type=bool, help="Balance dataset classes.")
+parser.add_argument("--tissue_percentages_max", default="O_0.4-T_1-S_1-I_1-N_1", type=str, help="tissue_percentages_max")
 
 # Miscellaneous
 parser.add_argument("--early_stopping", default=True, type=bool)
