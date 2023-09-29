@@ -11,7 +11,6 @@ def load_CV_fold_dataset(fold_id, magnification_level, pred_column, pred_mode, c
     ##############################################
 
     # Directories
-    # TODO: change all directories to slurm/local
     dir_data_frame = '../data/BCNB/patient-clinical-data.xlsx'
     dir_results = '../output/results/'
     dir_excels_class_perc = "../data/BCNB/patches_paths_class_perc/"
@@ -142,6 +141,7 @@ def main_cv(args):
     torch.manual_seed(42)
     CUDA_LAUNCH_BLOCKING = 1
 
+
     # MIL Parameters
     bag_id = 'Patient ID'
     pred_column = "Molecular subtype"
@@ -150,6 +150,8 @@ def main_cv(args):
     # pred_mode = "LUMINALAvsLAUMINALBvsHER2vsTNBC"
     # pred_mode = "LUMINALSvsHER2vsTNBC"
     # pred_mode = "OTHERvsTNBC"
+
+
 
     ordered = True
     patch_size = 512
@@ -162,6 +164,7 @@ def main_cv(args):
     tissue_percentages_max = "O_0.4-T_1-S_1-I_1-N_1"
     magnification_level = args.magnification_level
     #aggregation = args.aggregation
+
 
     # Prepare dataset for each CV fold
 
@@ -438,13 +441,15 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
                           test_generator=data_generator_test, epochs=args.epochs, model_save_name=args_train.run_name,
                           pred_column=args_train.pred_column, pred_mode=args_train.pred_mode, loss_function=args.loss_function)
 
-experiment_name = "[29_08_2023] BB MolSub 10x CV"
-learning_rates = [0.002] #[0.000001]
-network_backbones = ['vgg16']
-aggregations = ['attention']# , 'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
+# TODO: RUN CROSS-VALIDATION AT 10X FOR THE BEST CONFIGURATION OF 3-CLF AT 5X WITH RESNET50
+
+experiment_name = "[28_08_2023] MISSING TRANSMIL 5X-3CLF BB MolSub 5x CV"
+learning_rates = [0.0001, 0.00001, 0.002] #[0.000001]
+network_backbones = ['resnet50', 'vgg16']
+aggregations = ['TransMIL']# , 'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
 optimizers_types = ['adam', 'sgd']
-magnification_level = "10x" # "10x"
-pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"]
+magnification_level = "5x" # "10x"
+pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC"]
 
 
 ##########################
@@ -453,7 +458,6 @@ pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERv
 parser = argparse.ArgumentParser()
 
 # Model parameters
-# TODO: add where exec argument with all directories to slurm/local
 parser.add_argument("--dir_cv_dataset_splitting_path", default="../data/BCNB/new_CV_folds_BCNB",
                     type=str)  # Directory where the folds of the new splits are stored
 parser.add_argument("--train_test_mode", default="train", type=str)  # Select train, test, test_allmymodels
