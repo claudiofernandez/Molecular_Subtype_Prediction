@@ -57,9 +57,9 @@ def load_CV_fold_dataset(fold_id, magnification_level, pred_column, pred_mode, c
     df = df[df[pred_column].notna()]  # Clean the rows including NaN values in the column that we want to predict
 
     # Select df rows by train, test, val split
-    train_ids_df = df[df["Patient ID"].isin(train_ids)]#[:100]#.sample(30)
-    val_ids_df = df[df["Patient ID"].isin(val_ids)]#[:50]#.sample(20)
-    test_ids_df = df[df["Patient ID"].isin(test_ids)]#[:50]#.sample(20)
+    train_ids_df = df[df["Patient ID"].isin(train_ids)][:5]#[:100]#.sample(30)
+    val_ids_df = df[df["Patient ID"].isin(val_ids)][:2]#[:50]#.sample(20)
+    test_ids_df = df[df["Patient ID"].isin(test_ids)][:2]#[:50]#.sample(20)
 
     # Read the excel including the images paths and their tissue percentage
     train_class_perc_patches_paths_df = pd.read_csv(dir_excels_class_perc + "train_patches_class_perc_0_tp.csv")
@@ -132,7 +132,6 @@ def load_CV_fold_dataset(fold_id, magnification_level, pred_column, pred_mode, c
                                            images_on_ram=images_on_ram)
 
     # Return datasets
-
     return dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test
 
 def main_cv(args):
@@ -286,6 +285,9 @@ def main_cv(args):
                                                 type=str)
                             parser_train.add_argument("--pred_column", default=pred_column,
                                                 type=str)
+                            parser_train.add_argument("--magnification_level", default=pred_column,
+                                                type=str)
+
 
 
                             args_train = parser_train.parse_args()
@@ -347,7 +349,7 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
         mlflow.log_param("max_instances", args_train.max_instances)
         mlflow.log_param("ordered", args_train.ordered)
         mlflow.log_param("pred_mode", args_train.pred_mode)
-        mlflow.log_param("magnification_level", magnification_level)
+        mlflow.log_param("magnification_level", args_train.magnification_level)
         mlflow.log_param("pred_mode", args_train.pred_mode)
 
 
@@ -357,7 +359,7 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
         mlflow.log_param("learning_rate", args_train.lr)
         mlflow.log_param("criterion", args.criterion)
         mlflow.log_param("aggregation", args_train.aggregation)
-        mlflow.log_param("norm_c_weights", args.class_weights_norm)
+        # mlflow.log_param("norm_c_weights", args.class_weights_norm)
         mlflow.log_param("balanced_train_datagen", args_train.balanced_train_datagen)
         mlflow.log_param("tissue_percentages_max", args_train.tissue_percentages_max)
 
@@ -373,13 +375,14 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
             mlflow.log_param("include_edge_features", args_train.include_edge_features)
             mlflow.log_param("edge_agg", args.edge_agg)
 
-        # Compute Class Weights for Imbalanced Dataset
-        if args.class_weights_norm:
-            class_weights = sklearn.utils.class_weight.compute_class_weight(class_weight='balanced',
-                                                                            classes=args_train.dataset_train.classes,
-                                                                            y=args_train.dataset_train.y)
-        else:
-            class_weights = np.ones(len(args_train.classes))
+        # # Compute Class Weights for Imbalanced Dataset
+        # if args.class_weights_norm:
+        #     class_weights = sklearn.utils.class_weight.compute_class_weight(class_weight='balanced',
+        #                                                                     classes=args_train.dataset_train.classes,
+        #                                                                     y=args_train.dataset_train.y)
+        # else:
+        #
+        class_weights = np.ones(len(args_train.classes))
 
         ##################
         # Start Training #
@@ -438,13 +441,15 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
                           test_generator=data_generator_test, epochs=args.epochs, model_save_name=args_train.run_name,
                           pred_column=args_train.pred_column, pred_mode=args_train.pred_mode, loss_function=args.loss_function)
 
-experiment_name = "[29_08_2023] BB MolSub 10x CV"
-learning_rates = [0.002] #[0.000001]
-network_backbones = ['vgg16']
-aggregations = ['attention']# , 'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
-optimizers_types = ['adam', 'sgd']
-magnification_level = "10x" # "10x"
-pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"]
+            print("Training finished.")
+
+# experiment_name = "[29_08_2023] BB MolSub 10x CV"
+# learning_rates = [0.002] #[0.000001]
+# network_backbones = ['vgg16']
+# aggregations = ['attention']# , 'mean', 'attention', 'TransMIL'] #['max'] # ['mean', 'max']
+# optimizers_types = ['adam', 'sgd']
+# magnification_level = "10x" # "10x"
+# pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"]
 
 
 ##########################
@@ -452,31 +457,31 @@ pred_modes = ["LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERv
 ##########################
 parser = argparse.ArgumentParser()
 
-# Model parameters
-# TODO: add where exec argument with all directories to slurm/local
+# TODO: Put dir_cv_dataset_splitting_path inside CV folds (relative path from a general_data_dir)
 parser.add_argument("--dir_cv_dataset_splitting_path", default="../data/BCNB/new_CV_folds_BCNB",
                     type=str)  # Directory where the folds of the new splits are stored
-parser.add_argument("--train_test_mode", default="train", type=str)  # Select train, test, test_allmymodels
-parser.add_argument("--epochs", default=100, type=int)  # Number of epochs for training
-parser.add_argument("--magnification_level", default=magnification_level, type=str)  # # [BCNB] 5x, 10x, 20x
-parser.add_argument("--aggregations", default=aggregations, type=list)  # # [BCNB] 5x, 10x, 20x
-parser.add_argument("--learning_rates", default=learning_rates, type=list)  # # [BCNB] 5x, 10x, 20x
-parser.add_argument("--network_backbones", default=network_backbones, type=list)  # # [BCNB] 5x, 10x, 20x
-parser.add_argument("--loss_function", default="cross_entropy", type=str)  # cross_entropy, kll
-parser.add_argument("--optimizers_types", default=optimizers_types, type=str)  # sgd, adam, lookahead_radam
-parser.add_argument("--pred_modes", default=pred_modes, type=str)  # "LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"
+# TODO: add where exec argument with all directories to slurm/local
+#MLFlow configuration
+parser.add_argument("--experiment_name", default="[29_09_2023] BB MolSub 10x BCNB Final", type=str,  help='Name for experiment in MLFlow')
+
+# Training configuration
+parser.add_argument("--train_test_mode", default="train", type=str, help="Select train, test, test_allmymodels")
+parser.add_argument("--epochs", default=100, type=int, help="Number of epochs for training")
+parser.add_argument("--learning_rates", default=[0.002], type=list, help="Choose (1 or more): 0.002, 0.0001")
+parser.add_argument("--loss_function", default="cross_entropy", type=str, help="Loss function: cross_entropy, kll")
+parser.add_argument("--optimizers_types", default=["sgd"], type=list, help="Choose (1 or more): sgd, adam, lookahead_radam")
 parser.add_argument("--optimizer_weight_decay", default=0, type=float)
-parser.add_argument("--class_weights_norm", default=False,
-                    type=bool)  # Apply c_weights_norm to CrossEntropyLoss
-parser.add_argument("--freeze_bb_weights", default=False,
-                    type=bool)  # Freeze feature extractor weights. False: retrain True: transfer learning
-parser.add_argument("--pretrained", default=True, type=bool)  # Use pretrained feature extractor on ImageNet
-parser.add_argument("--criterion", default='auc', type=str)  # auc
+parser.add_argument("--freeze_bb_weights", default=False, type=bool, help="Freeze feature extractor weights. False: retrain True: transfer learning")
+parser.add_argument("--pretrained", default=True, type=bool, help="False: retrain from scratch True: Use pretrained feature extractor on ImageNet.")
+parser.add_argument("--criterion", default='auc', type=str, help="Metric to keep the best model: 'auc', 'f1'")
 parser.add_argument("--mode", default="embedding", type=str)  # embedding,embedding_GNN
 parser.add_argument("--alpha_ce", default=1., type=float)
 
-# Global label to predict
-parser.add_argument("--experiment_name", default=experiment_name, type=str)
+# Model configuration
+parser.add_argument("--pred_modes", default=["OTHERvsTNBC"], type=list, help="Choose (1 or more) between: 'LUMINALAvsLAUMINALBvsHER2vsTNBC', 'LUMINALSvsHER2vsTNBC', 'OTHERvsTNBC'")
+parser.add_argument("--network_backbones", default=['vgg16'], type=list, help="Choose (1 or more) betwwen: 'vgg16', 'resnet50'")
+parser.add_argument("--magnification_level", default="5x", type=str, help="5x, 10x, 20x")
+parser.add_argument("--aggregations", default=["mean"], type=list, help="Choose (1 or more) between: mean', 'max' 'attention', 'TransMIL'")
 
 # Miscellaneous
 parser.add_argument("--early_stopping", default=True, type=bool)
