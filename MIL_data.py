@@ -1791,6 +1791,7 @@ class MILDataset_w_class_perc(object):
 
     def image_normalization(self, x):
         # image resize
+        #TODO: Either compile opencv with GPU or change
         x = cv2.resize(x, (self.input_shape[1], self.input_shape[2]))
         # intensity normalization
         x = x / 255.0
