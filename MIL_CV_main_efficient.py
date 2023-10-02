@@ -175,7 +175,7 @@ def main_cv(args):
         args.gnrl_data_dir = '/workspace/NASFolder'
         output_directory = os.path.join(args.gnrl_data_dir, "output")
     elif args.where_exec == "slurm_dgx":
-        args.gnrl_data_dir = '/workspace/DGXFolder'
+        args.gnrl_data_dir = '/workspace/DGXFolder/BCNB'
         output_directory = os.path.join('/workspace/NASFolder', "output")
     elif args.where_exec == "dgx_gpu":
         args.gnrl_data_dir = "../data/BCNB/"
