@@ -400,6 +400,8 @@ def main_cv(args):
 
                                     mlflow_run_name = mlflow_run_name_ini + "_" + mlflow_run_name
 
+                                print("he llegado aqui")
+
                                 # Prepare output directories
                                 dir_out_exp = os.path.join(output_directory, args.mlflow_experiment_name)
                                 dir_out_run = os.path.join(output_directory, args.mlflow_experiment_name, mlflow_run_name)
