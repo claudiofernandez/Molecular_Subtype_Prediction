@@ -26,7 +26,7 @@ from sklearn.utils.class_weight import compute_class_weight
 
 # Stain Normalization
 import torchstain
-import tensorflow as tf
+#import tensorflow as tf
 from torchvision import transforms
 import albumentations as A
 from skimage import color
