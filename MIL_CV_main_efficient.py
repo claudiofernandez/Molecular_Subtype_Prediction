@@ -163,6 +163,13 @@ def main_cv(args):
     torch.manual_seed(42)
     CUDA_LAUNCH_BLOCKING = 1
 
+    # Split the comma-separated string into a list of floats
+    args.pred_modes = [str(pred_mode) for pred_mode in args.pred_modes.split(',')]
+    args.learning_rates = [float(lr) for lr in args.learning_rates.split(',')]
+    args.network_backbones = [str(network_backbone) for network_backbone in args.network_backbones.split(',')]
+    args.aggregations = [str(aggregation) for aggregation in args.aggregations.split(',')]
+    args.optimizers_types = [str(optimizer_type) for optimizer_type in args.optimizers_types.split(',')]
+
     # Set up directories depending on where this program is executed
     if args.where_exec == "slurm_nas":
         args.gnrl_data_dir = '/workspace/NASFolder'
@@ -478,9 +485,9 @@ if __name__ == '__main__':
     # Training configuration
     parser.add_argument("--train_test_mode", default="train", type=str, help="Select train, test, test_allmymodels")
     parser.add_argument("--epochs", default=5, type=int, help="Number of epochs for training")
-    parser.add_argument("--learning_rates", default=[0.002], type=list, help="Choose (1 or more): 0.002, 0.0001")
+    parser.add_argument("--learning_rates", default="0.002", type=str, help="Comma-separated list of learning rates. Choose (1 or more): 0.002, 0.0001")
     parser.add_argument("--loss_function", default="cross_entropy", type=str, help="Loss function: cross_entropy, kll")
-    parser.add_argument("--optimizers_types", default=["sgd"], type=list, help="Choose (1 or more): sgd, adam, lookahead_radam")
+    parser.add_argument("--optimizers_types", default="sgd", type=str, help="Comma-separated list of optimizers. Choose (1 or more): sgd, adam, lookahead_radam")
     parser.add_argument("--optimizer_weight_decay", default=0, type=float)
     parser.add_argument("--freeze_bb_weights", default=False, type=bool, help="Freeze feature extractor weights. False: retrain True: transfer learning")
     parser.add_argument("--pretrained", default=True, type=bool, help="False: retrain from scratch True: Use pretrained feature extractor on ImageNet.")
@@ -489,10 +496,10 @@ if __name__ == '__main__':
     parser.add_argument("--alpha_ce", default=1., type=float)
 
     # Model configuration
-    parser.add_argument("--pred_modes", default=["LUMINALSvsHER2vsTNBC"], type=list, help="Choose (1 or more) between: 'LUMINALAvsLAUMINALBvsHER2vsTNBC', 'LUMINALSvsHER2vsTNBC', 'OTHERvsTNBC'")
-    parser.add_argument("--network_backbones", default=['vgg16'], type=list, help="Choose (1 or more) betwwen: 'vgg16', 'resnet50'")
+    parser.add_argument("--pred_modes", default="LUMINALSvsHER2vsTNBC,OTHERvsTNBC", type=str, help="Comma-separated list of prediction modes. Choose (1 or more) between: 'LUMINALAvsLAUMINALBvsHER2vsTNBC', 'LUMINALSvsHER2vsTNBC', 'OTHERvsTNBC'")
+    parser.add_argument("--network_backbones", default='vgg16, resnet50', type=str, help="Comma-separated list of backbones. Choose (1 or more) betwwen: 'vgg16', 'resnet50'")
     parser.add_argument("--magnification_level", default="5x", type=str, help="5x, 10x, 20x")
-    parser.add_argument("--aggregations", default=["mean"], type=list, help="Choose (1 or more) between: mean', 'max' 'attention', 'TransMIL'")
+    parser.add_argument("--aggregations", default="mean, max", type=list, help="Comma-separated list of MIL aggregations. Choose (1 or more) between: mean', 'max' 'attention', 'TransMIL'")
 
     # MIL Parameters
     parser.add_argument("--bag_id", default="Patient ID", type=str, help="Identifier of Bags")
