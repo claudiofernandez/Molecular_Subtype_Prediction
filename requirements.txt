@@ -7,6 +7,7 @@ nmslib==2.1.1
 nystrom_attention==0.0.11
 # opencv==4.6.0
 # opencv_python_headless==4.8.0.74
+opencv-contrib-python-headless==4.7.0.72
 pandas==1.5.2
 Pillow==9.2.0
 # Pillow==10.0.1
