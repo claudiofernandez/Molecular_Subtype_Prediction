@@ -15,8 +15,6 @@ import json
 import datetime
 import time
 import seaborn as sns
-
-
 import sklearn
 import skimage.transform
 import skimage.util
