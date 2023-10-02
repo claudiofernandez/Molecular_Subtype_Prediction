@@ -453,13 +453,12 @@ def main_cv(args):
                                 parser_train.add_argument("--magnification_level", default=args.magnification_level,
                                                           type=str)
 
-                                print("he llegado aqui")
 
                                 args_train = parser_train.parse_args()
+                                print("he llegado aqui")
                                 train_exp(args_train, dataset_train, data_generator_train, dataset_val,
                                           data_generator_val,
                                           dataset_test, data_generator_test)
-
 
                 print("hola")
         elif args.dataset == "CLARIFY_DB":
