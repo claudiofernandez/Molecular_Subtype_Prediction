@@ -175,6 +175,7 @@ def main_cv(args):
         args.gnrl_data_dir = '/workspace/NASFolder'
         output_directory = os.path.join(args.gnrl_data_dir, "output")
     elif args.where_exec == "slurm_dgx":
+        #TODO: change so it is not directly BCNB here
         args.gnrl_data_dir = '/workspace/DGXFolder/BCNB'
         output_directory = os.path.join('/workspace/NASFolder', "output")
     elif args.where_exec == "dgx_gpu":
@@ -335,7 +336,7 @@ def main_cv(args):
                     pred_mode=pred_mode, regions_filled=args.regions_filled, ordered=args.ordered, patch_size=args.patch_size,
                     max_instances=args.max_instances, data_augmentation=args.data_augmentation, stain_normalization=args.stain_normalization,
                     images_on_ram=args.images_on_ram, include_background=args.include_background, balanced_train_datagen=args.balanced_train_datagen,
-                    tissue_percentages_max=args.tissue_percentages_max)
+                    tissue_percentages_max=args.tissue_percentages_max, where_exec=args.where_exec)
 
                 for network_backbone in args.network_backbones:
                     for aggregation in args.aggregations:

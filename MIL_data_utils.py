@@ -133,7 +133,7 @@ def load_CV_fold_dataset(fold_id, magnification_level, pred_column, pred_mode, c
     # Return datasets
     return dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test
 
-def load_BCNB_full_dataset(gnrl_data_dir, magnification_level, pred_column, pred_mode, regions_filled, ordered, patch_size, max_instances, data_augmentation, stain_normalization, images_on_ram, include_background, balanced_train_datagen, tissue_percentages_max):
+def load_BCNB_full_dataset(gnrl_data_dir, magnification_level, pred_column, pred_mode, regions_filled, ordered, patch_size, max_instances, data_augmentation, stain_normalization, images_on_ram, include_background, balanced_train_datagen, tissue_percentages_max, where_exec):
 
     # Set classes depending on training task
     if pred_mode == "LUMINALAvsLAUMINALBvsHER2vsTNBC":
@@ -220,7 +220,8 @@ def load_BCNB_full_dataset(gnrl_data_dir, magnification_level, pred_column, pred
                                             images_on_ram=images_on_ram,
                                             include_background=include_background,
                                             class_perc_data_frame=combined_class_perc_patches_paths_df,
-                                            tissue_percentages_max=tissue_percentages_max)
+                                            tissue_percentages_max=tissue_percentages_max, gnrl_data_dir=gnrl_data_dir,
+                                            where_exec=where_exec)
     if balanced_train_datagen:
         data_generator_train = MILDataGenerator_balanced_good(dataset_train, batch_size=1,
                                                               shuffle=not (ordered),

@@ -1429,7 +1429,7 @@ class MILDataGenerator_coords(object):
 ####################################
 class MILDataset_w_class_perc(object):
 
-    def __init__(self, dir_images, data_frame, pred_column, pred_mode, magnification_level, class_perc_data_frame, tissue_percentages_max, classes, bag_id='Patient ID', input_shape=(3, 224, 224),
+    def __init__(self, dir_images, data_frame, pred_column, pred_mode, magnification_level, class_perc_data_frame, tissue_percentages_max, classes, gnrl_data_dir, where_exec, bag_id='Patient ID', input_shape=(3, 224, 224),
                  data_augmentation=False, images_on_ram=False, channel_first=True, stain_normalization=False, include_background=False):
 
         """Dataset object for MIL.
@@ -1462,6 +1462,8 @@ class MILDataset_w_class_perc(object):
         self.pred_mode = pred_mode
         self.magnification_level = magnification_level
         self.include_background = include_background
+        self.where_exec = where_exec
+        self.gnrl_data_dir = gnrl_data_dir
 
         if stain_normalization:
             # target_stain_patch_path = os.path.join(self.dir_images, "26", "26_0_0_0.jpg")
@@ -1490,7 +1492,23 @@ class MILDataset_w_class_perc(object):
 
         selected_images_paths = list(filtered_rows["patch_path"])
         #selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/", "../data/") for path in selected_images_paths]
-        selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/", "../data/BCNB/preprocessing_results_bien/") for path in selected_images_paths]
+        #selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/", "../data/BCNB/preprocessing_results_bien/") for path in selected_images_paths]
+        # TODO: change all paths relative to where_exec
+        if self.where_exec == "slurm_nas":
+            selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/", "../data/BCNB/preprocessing_results_bien/") for path in selected_images_paths]
+        elif self.where_exec == "slurm_dgx":
+            selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/",
+                                                  os.path.join(self.gnrl_data_dir, "preprocessing_results_bien/")) for path in
+                                     selected_images_paths]
+        elif self.where_exec == "dgx_gpu":
+            selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/",
+                                                  "../data/BCNB/preprocessing_results_bien/") for path in
+                                     selected_images_paths]
+        elif self.where_exec == "local":
+            # TODO: write for executing locally
+            selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/",
+                                                  "../data/BCNB/preprocessing_results_bien/") for path in
+                                     selected_images_paths]
 
         # Now selected_images_paths contains the paths for ALL IDs (unilike before where it only contained the ones for training)
         # Therefore, we need to filter these paths based on the content of the "Patient_ID" column of the self.data_frame (which only contains the IDs for training)
