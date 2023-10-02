@@ -400,7 +400,7 @@ def main_cv(args):
 
                                     mlflow_run_name = mlflow_run_name_ini + "_" + mlflow_run_name
 
-                                print("he llegado aqui")
+
 
                                 # Prepare output directories
                                 dir_out_exp = os.path.join(output_directory, args.mlflow_experiment_name)
@@ -452,6 +452,8 @@ def main_cv(args):
                                                           type=str)
                                 parser_train.add_argument("--magnification_level", default=args.magnification_level,
                                                           type=str)
+
+                                print("he llegado aqui")
 
                                 args_train = parser_train.parse_args()
                                 train_exp(args_train, dataset_train, data_generator_train, dataset_val,
