@@ -464,13 +464,13 @@ def main_cv(args):
 ##########################
 parser = argparse.ArgumentParser()
 
+#MLFlow configuration
+parser.add_argument("--mlflow_experiment_name", default="[02_10_2023] BB MolSub 10x BCNB Final", type=str,  help='Name for experiment in MLFlow')
+
 # Directories.
 parser.add_argument('--where_exec', type=str, default="dgx_gpu", help="slurm_dgx, slurm_nas, dgx_gpu or local")
 parser.add_argument('--training_type', type=str, default="full_dataset" , help='CV or full_dataset')
 parser.add_argument('--dataset', type=str, default="BCNB", help='BCNB or CLARIFY_DB')
-
-#MLFlow configuration
-parser.add_argument("--mlflow_experiment_name", default="[02_10_2023] BB MolSub 10x BCNB Final", type=str,  help='Name for experiment in MLFlow')
 
 # Training configuration
 parser.add_argument("--train_test_mode", default="train", type=str, help="Select train, test, test_allmymodels")
