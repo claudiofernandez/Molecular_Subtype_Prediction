@@ -216,7 +216,9 @@ class TransMIL_trainer():
 
         except ValueError:
             macro_auc = 0.
+            weighted_f1_score = 0.
             self.macro_auc_lc_train.append(macro_auc)
+            self.macro_f1_train.append(weighted_f1_score)
             print("Only one class prediced (bad training).")
 
         # Display losses
