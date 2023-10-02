@@ -188,9 +188,9 @@ def load_BCNB_full_dataset(gnrl_data_dir, magnification_level, pred_column, pred
     df = df[df[pred_column].notna()]  # Clean the rows including NaN values in the column that we want to predict
 
     # Select df rows by train, test, val split
-    train_ids_df = df[df["Patient ID"].isin(train_ids)][:5]#[:100]#.sample(30)
-    val_ids_df = df[df["Patient ID"].isin(val_ids)][:2]#[:50]#.sample(20)
-    test_ids_df = df[df["Patient ID"].isin(test_ids)][:2]#[:50]#.sample(20)
+    train_ids_df = df[df["Patient ID"].isin(train_ids)][:10]#[:100]#.sample(30)
+    val_ids_df = df[df["Patient ID"].isin(val_ids)][:5]#[:50]#.sample(20)
+    test_ids_df = df[df["Patient ID"].isin(test_ids)][:5]#[:50]#.sample(20)
 
     # Read the excel including the images paths and their tissue percentage
     train_class_perc_patches_paths_df = pd.read_csv(os.path.join(dir_excels_class_perc, "train_patches_class_perc_0_tp.csv"))
@@ -263,5 +263,5 @@ def load_BCNB_full_dataset(gnrl_data_dir, magnification_level, pred_column, pred
                                            images_on_ram=images_on_ram)
 
     # Return datasets
-    return dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test
+    return classes, dataset_train, data_generator_train, dataset_val, data_generator_val, dataset_test, data_generator_test
 
