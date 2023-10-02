@@ -459,67 +459,70 @@ def main_cv(args):
 
     print("holu")
 
-##########################
-# CREATE ARGUMENT PARSER #
-##########################
-parser = argparse.ArgumentParser()
 
-#MLFlow configuration
-parser.add_argument("--mlflow_experiment_name", default="[02_10_2023] BB MolSub 10x BCNB Final", type=str,  help='Name for experiment in MLFlow')
+if __name__ == '__main__':
 
-# Directories.
-parser.add_argument('--where_exec', type=str, default="dgx_gpu", help="slurm_dgx, slurm_nas, dgx_gpu or local")
-parser.add_argument('--training_type', type=str, default="full_dataset" , help='CV or full_dataset')
-parser.add_argument('--dataset', type=str, default="BCNB", help='BCNB or CLARIFY_DB')
+    ##########################
+    # CREATE ARGUMENT PARSER #
+    ##########################
+    parser = argparse.ArgumentParser()
 
-# Training configuration
-parser.add_argument("--train_test_mode", default="train", type=str, help="Select train, test, test_allmymodels")
-parser.add_argument("--epochs", default=5, type=int, help="Number of epochs for training")
-parser.add_argument("--learning_rates", default=[0.002], type=list, help="Choose (1 or more): 0.002, 0.0001")
-parser.add_argument("--loss_function", default="cross_entropy", type=str, help="Loss function: cross_entropy, kll")
-parser.add_argument("--optimizers_types", default=["sgd"], type=list, help="Choose (1 or more): sgd, adam, lookahead_radam")
-parser.add_argument("--optimizer_weight_decay", default=0, type=float)
-parser.add_argument("--freeze_bb_weights", default=False, type=bool, help="Freeze feature extractor weights. False: retrain True: transfer learning")
-parser.add_argument("--pretrained", default=True, type=bool, help="False: retrain from scratch True: Use pretrained feature extractor on ImageNet.")
-parser.add_argument("--criterion", default='auc', type=str, help="Metric to keep the best model: 'auc', 'f1'")
-parser.add_argument("--mode", default="embedding", type=str)  # embedding,embedding_GNN
-parser.add_argument("--alpha_ce", default=1., type=float)
+    #MLFlow configuration
+    parser.add_argument("--mlflow_experiment_name", default="[02_10_2023] BB MolSub 10x BCNB Final", type=str,  help='Name for experiment in MLFlow')
 
-# Model configuration
-parser.add_argument("--pred_modes", default=["LUMINALSvsHER2vsTNBC"], type=list, help="Choose (1 or more) between: 'LUMINALAvsLAUMINALBvsHER2vsTNBC', 'LUMINALSvsHER2vsTNBC', 'OTHERvsTNBC'")
-parser.add_argument("--network_backbones", default=['vgg16'], type=list, help="Choose (1 or more) betwwen: 'vgg16', 'resnet50'")
-parser.add_argument("--magnification_level", default="5x", type=str, help="5x, 10x, 20x")
-parser.add_argument("--aggregations", default=["mean"], type=list, help="Choose (1 or more) between: mean', 'max' 'attention', 'TransMIL'")
+    # Directories.
+    parser.add_argument('--where_exec', type=str, default="dgx_gpu", help="slurm_dgx, slurm_nas, dgx_gpu or local")
+    parser.add_argument('--training_type', type=str, default="full_dataset" , help='CV or full_dataset')
+    parser.add_argument('--dataset', type=str, default="BCNB", help='BCNB or CLARIFY_DB')
 
-# MIL Parameters
-parser.add_argument("--bag_id", default="Patient ID", type=str, help="Identifier of Bags")
-parser.add_argument("--max_instances", default=100, type=int, help="Max number of instances per bag.")
-parser.add_argument("--pred_column", default="Molecular subtype", type=str, help="Name of dataframe column that you want to predict.")
-parser.add_argument("--regions_filled", default="fullWSIs_TP_0", type=str, help="")
-parser.add_argument("--ordered", default=True, type=bool, help="Ordered dataset.")
-parser.add_argument("--patch_size", default=512, type=int, help="Ordered dataset.")
-parser.add_argument("--data_augmentation", default="non-spatial", type=str, help="Type of image augmentations")
-parser.add_argument("--stain_normalization", default=False, type=bool, help="Normalize staining of the patches.")
-parser.add_argument("--images_on_ram", default=True, type=bool, help="Preload images on RAM memory")
-#TODO: remove include background
-parser.add_argument("--include_background", default=False, type=bool, help="Preload images on RAM memory")
-parser.add_argument("--balanced_train_datagen", default=True, type=bool, help="Balance dataset classes.")
-parser.add_argument("--tissue_percentages_max", default="O_0.4-T_1-S_1-I_1-N_1", type=str, help="tissue_percentages_max")
+    # Training configuration
+    parser.add_argument("--train_test_mode", default="train", type=str, help="Select train, test, test_allmymodels")
+    parser.add_argument("--epochs", default=5, type=int, help="Number of epochs for training")
+    parser.add_argument("--learning_rates", default=[0.002], type=list, help="Choose (1 or more): 0.002, 0.0001")
+    parser.add_argument("--loss_function", default="cross_entropy", type=str, help="Loss function: cross_entropy, kll")
+    parser.add_argument("--optimizers_types", default=["sgd"], type=list, help="Choose (1 or more): sgd, adam, lookahead_radam")
+    parser.add_argument("--optimizer_weight_decay", default=0, type=float)
+    parser.add_argument("--freeze_bb_weights", default=False, type=bool, help="Freeze feature extractor weights. False: retrain True: transfer learning")
+    parser.add_argument("--pretrained", default=True, type=bool, help="False: retrain from scratch True: Use pretrained feature extractor on ImageNet.")
+    parser.add_argument("--criterion", default='auc', type=str, help="Metric to keep the best model: 'auc', 'f1'")
+    parser.add_argument("--mode", default="embedding", type=str)  # embedding,embedding_GNN
+    parser.add_argument("--alpha_ce", default=1., type=float)
 
-# Miscellaneous
-parser.add_argument("--early_stopping", default=True, type=bool)
-parser.add_argument("--scheduler", default=True, type=bool)
-parser.add_argument("--virtual_batch_size", default=1, type=int)
+    # Model configuration
+    parser.add_argument("--pred_modes", default=["LUMINALSvsHER2vsTNBC"], type=list, help="Choose (1 or more) between: 'LUMINALAvsLAUMINALBvsHER2vsTNBC', 'LUMINALSvsHER2vsTNBC', 'OTHERvsTNBC'")
+    parser.add_argument("--network_backbones", default=['vgg16'], type=list, help="Choose (1 or more) betwwen: 'vgg16', 'resnet50'")
+    parser.add_argument("--magnification_level", default="5x", type=str, help="5x, 10x, 20x")
+    parser.add_argument("--aggregations", default=["mean"], type=list, help="Choose (1 or more) between: mean', 'max' 'attention', 'TransMIL'")
 
-# # Patch GCN Parameters
-# parser.add_argument('--include_edge_features',  default=False, help='Include edge_features (euclidean dist) in  the graph')
-# parser.add_argument('--num_gcn_layers',  type=int, default=5, help='# of GCN layers to use.')
-# parser.add_argument('--node_knn',  type=int, default=knn, help='# of K nearest neighbours for graph creation.')
-# parser.add_argument('--node_feature_extractor', type=str, default=node_feature_extractor, help="Feature extractor that will be used for creating the nodes of the graph.") # resnet50_3blocks_1024
-# parser.add_argument('--edge_agg',        type=str, default='spatial', help="What edge relationship to use for aggregation.") # It is possible to use spatial or latent edge aggregation
-# parser.add_argument('--resample',        type=float, default=0.00, help='Dropping out random patches.')
-# parser.add_argument('--drop_out',        action='store_true', default=True, help='Enable dropout (p=0.25)')
-#
+    # MIL Parameters
+    parser.add_argument("--bag_id", default="Patient ID", type=str, help="Identifier of Bags")
+    parser.add_argument("--max_instances", default=100, type=int, help="Max number of instances per bag.")
+    parser.add_argument("--pred_column", default="Molecular subtype", type=str, help="Name of dataframe column that you want to predict.")
+    parser.add_argument("--regions_filled", default="fullWSIs_TP_0", type=str, help="")
+    parser.add_argument("--ordered", default=True, type=bool, help="Ordered dataset.")
+    parser.add_argument("--patch_size", default=512, type=int, help="Ordered dataset.")
+    parser.add_argument("--data_augmentation", default="non-spatial", type=str, help="Type of image augmentations")
+    parser.add_argument("--stain_normalization", default=False, type=bool, help="Normalize staining of the patches.")
+    parser.add_argument("--images_on_ram", default=True, type=bool, help="Preload images on RAM memory")
+    #TODO: remove include background
+    parser.add_argument("--include_background", default=False, type=bool, help="Preload images on RAM memory")
+    parser.add_argument("--balanced_train_datagen", default=True, type=bool, help="Balance dataset classes.")
+    parser.add_argument("--tissue_percentages_max", default="O_0.4-T_1-S_1-I_1-N_1", type=str, help="tissue_percentages_max")
 
-args = parser.parse_args()
-main_cv(args)
+    # Miscellaneous
+    parser.add_argument("--early_stopping", default=True, type=bool)
+    parser.add_argument("--scheduler", default=True, type=bool)
+    parser.add_argument("--virtual_batch_size", default=1, type=int)
+
+    # # Patch GCN Parameters
+    # parser.add_argument('--include_edge_features',  default=False, help='Include edge_features (euclidean dist) in  the graph')
+    # parser.add_argument('--num_gcn_layers',  type=int, default=5, help='# of GCN layers to use.')
+    # parser.add_argument('--node_knn',  type=int, default=knn, help='# of K nearest neighbours for graph creation.')
+    # parser.add_argument('--node_feature_extractor', type=str, default=node_feature_extractor, help="Feature extractor that will be used for creating the nodes of the graph.") # resnet50_3blocks_1024
+    # parser.add_argument('--edge_agg',        type=str, default='spatial', help="What edge relationship to use for aggregation.") # It is possible to use spatial or latent edge aggregation
+    # parser.add_argument('--resample',        type=float, default=0.00, help='Dropping out random patches.')
+    # parser.add_argument('--drop_out',        action='store_true', default=True, help='Enable dropout (p=0.25)')
+    #
+
+    args = parser.parse_args()
+    main_cv(args)
