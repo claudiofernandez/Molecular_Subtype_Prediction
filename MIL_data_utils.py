@@ -241,7 +241,8 @@ def load_BCNB_full_dataset(gnrl_data_dir, magnification_level, pred_column, pred
                                           data_augmentation=False, stain_normalization=stain_normalization,
                                           images_on_ram=images_on_ram, include_background=include_background,
                                           class_perc_data_frame=combined_class_perc_patches_paths_df,
-                                          tissue_percentages_max=tissue_percentages_max)
+                                          tissue_percentages_max=tissue_percentages_max, gnrl_data_dir=gnrl_data_dir,
+                                            where_exec=where_exec)
 
     data_generator_val = MILDataGenerator(dataset_val, batch_size=1, shuffle=False,
                                           max_instances=max_instances, num_workers=0, pred_column=pred_column,
@@ -256,7 +257,8 @@ def load_BCNB_full_dataset(gnrl_data_dir, magnification_level, pred_column, pred
                                            data_augmentation=False, stain_normalization=stain_normalization,
                                            images_on_ram=images_on_ram, include_background=include_background,
                                            class_perc_data_frame=combined_class_perc_patches_paths_df,
-                                           tissue_percentages_max=tissue_percentages_max)
+                                           tissue_percentages_max=tissue_percentages_max, gnrl_data_dir=gnrl_data_dir,
+                                            where_exec=where_exec)
 
     data_generator_test = MILDataGenerator(dataset_test, batch_size=1, shuffle=False,
                                            max_instances=max_instances,
