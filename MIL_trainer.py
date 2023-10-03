@@ -318,7 +318,8 @@ class TransMIL_trainer():
                                                   results_save_path=self.dir_results,
                                                   best_model_type="f1",
                                                   return_params=True,
-                                                  show_cf=False)
+                                                  show_cf=False,
+                                                  i_epoch = self.i_epoch)
 
                     mlflow.log_metric("test_BF1_auc", test_roc_auc_score, step=self.i_epoch)
                     mlflow.log_metric("test_BF1_f1", test_f1_score_w, step=self.i_epoch)

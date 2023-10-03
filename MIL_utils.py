@@ -130,7 +130,7 @@ def custom_categorical_cross_entropy(y_pred, y_true, class_weights=None, loss_fu
     # Return the computed loss.
     return loss
 
-def eval_bag_level_classification(test_generator, network, weights2eval_path, pred_column, pred_mode, results_save_path, best_model_type, aggregation, binary=False, return_params=False, show_cf=False, node_feature_extractor=None, knn=None):
+def eval_bag_level_classification(test_generator, network, weights2eval_path, pred_column, pred_mode, results_save_path, best_model_type, aggregation, i_epoch, binary=False, return_params=False, show_cf=False, node_feature_extractor=None, knn=None):
     """
     Evaluate bag-level classification performance of the trained neural network.
 
@@ -248,17 +248,17 @@ def eval_bag_level_classification(test_generator, network, weights2eval_path, pr
         cfsn_matrix = confusion_matrix(y_gt, y_pred)
         print(cfsn_matrix)
 
-        test_roc_auc_score = roc_auc_score(Y_all, Yhat_all, multi_class='ovr')
-        test_cohen_kappa_score = cohen_kappa_score(y_gt, y_pred)
-        test_accuracy_score = accuracy_score(y_gt, y_pred)
-        test_f1_score_w = f1_score(y_gt, y_pred, average='weighted')
-        test_recall = recall_score(y_gt, y_pred, average='weighted')
-        test_precision = precision_score(y_gt, y_pred, average='weighted')
-        # Calculate Positive Predictive Value (PPV) or Precision
-        test_ppv = precision_score(y_gt, y_pred, average='weighted')
+        # Save confusion matrix
 
-        #TODO: Check if binary classification, if not we wont have tps, tns, etc
-        if cfsn_matrix.shape==(2,2):
+        confusion_matrix_df = pd.DataFrame(cfsn_matrix).rename(columns=class2idx, index=class2idx)
+        fig, ax = plt.subplots(figsize=(7, 5))
+        sns.heatmap(confusion_matrix_df, annot=True, ax=ax, cmap='Blues')
+        cf_savepath = os.path.join(results_save_path, 'test_cfsn_matrix_best_' + str(best_model_type)  + "_" + str(i_epoch)+ '.png')
+        plt.savefig(cf_savepath, bbox_inches='tight')
+        if show_cf:
+            plt.show()
+
+        if pred_mode=="OTHERvsTNBC":
         # Calculate Negative Predictive Value (NPV)
             tn, fp, fn, tp = cfsn_matrix.ravel()
             test_npv = tn / (tn + fn)
@@ -278,6 +278,22 @@ def eval_bag_level_classification(test_generator, network, weights2eval_path, pr
             test_fpr = 0
             test_fnr = 0
             test_npv = 0
+
+        # Compute metrics
+        try:
+            test_roc_auc_score = roc_auc_score(Y_all, Yhat_all, multi_class='ovr')
+        except ValueError as e:
+            # Handle the exception here
+            print(f"Exception: {e}")
+            test_roc_auc_score = 0.
+
+        test_cohen_kappa_score = cohen_kappa_score(y_gt, y_pred)
+        test_accuracy_score = accuracy_score(y_gt, y_pred)
+        test_f1_score_w = f1_score(y_gt, y_pred, average='weighted')
+        test_recall = recall_score(y_gt, y_pred, average='weighted')
+        test_precision = precision_score(y_gt, y_pred, average='weighted')
+        # Calculate Positive Predictive Value (PPV) or Precision
+        test_ppv = precision_score(y_gt, y_pred, average='weighted')
 
         print("ROC AUC Score ovr: ", test_roc_auc_score)
         print("Cohen Kappa Score: ", test_cohen_kappa_score)
@@ -310,15 +326,6 @@ def eval_bag_level_classification(test_generator, network, weights2eval_path, pr
             convert_file.write("\nTrue Negative Rate (TNR) or Specificity: " + str(test_tnr))
             convert_file.write("\nFalse Positive Rate (FPR): " + str(test_fpr))
             convert_file.write("\nFalse Negative Rate (FNR): " + str(test_fnr))
-
-
-        confusion_matrix_df = pd.DataFrame(cfsn_matrix).rename(columns=class2idx, index=class2idx)
-        fig, ax = plt.subplots(figsize=(7, 5))
-        sns.heatmap(confusion_matrix_df, annot=True, ax=ax, cmap='Blues')
-        cf_savepath = os.path.join(results_save_path, 'test_cfsn_matrix_best_' + str(best_model_type) + '.png')
-        plt.savefig(cf_savepath, bbox_inches='tight')
-        if show_cf:
-            plt.show()
 
         if return_params:
             return test_roc_auc_score, test_cohen_kappa_score, test_accuracy_score, test_f1_score_w, test_recall, test_precision, cf_savepath, test_ppv, test_npv, test_specificity, test_tpr, test_tnr, test_fpr, test_fnr
