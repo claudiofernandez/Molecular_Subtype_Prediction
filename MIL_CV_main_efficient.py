@@ -478,7 +478,7 @@ def main_cv(args):
                                 #
                                 #
                                 # args_train = parser_train.parse_args()
-                                print("he llegado aqui")
+
                                 train_exp(args_train, dataset_train, data_generator_train, dataset_val,
                                           data_generator_val,
                                           dataset_test, data_generator_test)
@@ -524,7 +524,7 @@ if __name__ == '__main__':
 
     # Model configuration
     parser.add_argument("--pred_modes", default="LUMINALSvsHER2vsTNBC,OTHERvsTNBC", type=str, help="Comma-separated list of prediction modes. Choose (1 or more) between: 'LUMINALAvsLAUMINALBvsHER2vsTNBC', 'LUMINALSvsHER2vsTNBC', 'OTHERvsTNBC'")
-    parser.add_argument("--network_backbones", default='vgg16, resnet50', type=str, help="Comma-separated list of backbones. Choose (1 or more) betwwen: 'vgg16', 'resnet50'")
+    parser.add_argument("--network_backbones", default='vgg16,resnet50', type=str, help="Comma-separated list of backbones. Choose (1 or more) betwwen: 'vgg16', 'resnet50'")
     parser.add_argument("--magnification_level", default="5x", type=str, help="5x, 10x, 20x")
     parser.add_argument("--aggregations", default="mean,max", type=str, help="Comma-separated list of MIL aggregations. Choose (1 or more) between: mean', 'max' 'attention', 'TransMIL'")
 
