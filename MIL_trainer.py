@@ -274,7 +274,7 @@ class TransMIL_trainer():
                                                   best_model_type="auc",
                                                   return_params=True,
                                                   show_cf=False,
-                                                  epoch=self.i_epoch)
+                                                  i_epoch=self.i_epoch)
                     mlflow.log_metric("test_BA_auc", test_roc_auc_score, step=self.i_epoch)
                     mlflow.log_metric("test_BA_f1", test_f1_score_w, step=self.i_epoch)
                     mlflow.log_metric("test_BA_recall", test_recall, step=self.i_epoch)
