@@ -264,7 +264,7 @@ class TransMIL_trainer():
                 # After saving best model, test and report to MLFlow
                 try:
 
-                    test_roc_auc_score, test_cohen_kappa_score, test_accuracy_score, test_f1_score_w, test_recall, test_precision, pil_img_cf, test_ppv, test_npv, test_specificity, test_tpr, test_tnr, test_fpr, test_fnr = eval_bag_level_classification(test_generator=self.test_generator,
+                    test_roc_auc_score, test_cohen_kappa_score, test_accuracy_score, test_f1_score_w, test_recall, test_precision, cf_savepath, test_ppv, test_npv, test_specificity, test_tpr, test_tnr, test_fpr, test_fnr = eval_bag_level_classification(test_generator=self.test_generator,
                                                   network=self.network,
                                                   weights2eval_path=os.path.join(self.dir_results, weights_save_model_name),
                                                   pred_column=self.pred_column,
@@ -290,13 +290,13 @@ class TransMIL_trainer():
                     #print(cf_savepath)
                     #print(os.getcwd())
                     #hola = "/home/clferma/Documents/MIL_global_labels/data/results/MolSub 5x Aggr MeanMax 3CLF CV LR New/PM_LUMINALSvsHER2vsTNBC_AGGR_mean_ML_5x_NN_bb_vgg16_FBB_False_PS_512_DA_non-spatial_SN_False_L_auc_E_100_LR_0002_Order_True_Optim_sgd_N_3_BDG_True_OWD_0_TP_O_0.4-T_1-S_1-I_1-N_1/CVFold_1/test_cfsn_matrix_best_auc.png"
-                    #mlflow.log_artifact(cf_savepath, "test_BA_cf")
+                    mlflow.log_artifact(cf_savepath, "test_BA_cf")
                     #print(f"artifact_uri={mlflow.get_artifact_uri()}")
                     #print(cf_savepath)
                     # Log CF to mlflow
-                    log_cf_every = 1
-                    if (self.i_epoch + 1) % log_cf_every == 0:
-                        mlflow.log_image(pil_img_cf, "test_cf_" + str("f1") + "_" + str(self.i_epoch))
+                    # log_cf_every = 1
+                    # if (self.i_epoch + 1) % log_cf_every == 0:
+                    #     mlflow.log_image(pil_img_cf, "test_cf_" + str("f1") + "_" + str(self.i_epoch))
 
 
                     #mlflow.log_artifact( local_path=cf_savepath)
@@ -316,7 +316,7 @@ class TransMIL_trainer():
                 # After saving best model, test and report to MLFlow
 
                 try:
-                    test_roc_auc_score, test_cohen_kappa_score, test_accuracy_score, test_f1_score_w, test_recall, test_precision, pil_img_cf,test_ppv, test_npv, test_specificity, test_tpr, test_tnr, test_fpr, test_fnr = eval_bag_level_classification(test_generator=self.test_generator,
+                    test_roc_auc_score, test_cohen_kappa_score, test_accuracy_score, test_f1_score_w, test_recall, test_precision, cf_savepath ,test_ppv, test_npv, test_specificity, test_tpr, test_tnr, test_fpr, test_fnr = eval_bag_level_classification(test_generator=self.test_generator,
                                                   network=self.network,
                                                   weights2eval_path=os.path.join(self.dir_results, weights_save_model_name),
                                                   pred_column=self.pred_column,
@@ -340,12 +340,12 @@ class TransMIL_trainer():
                     mlflow.log_metric("test_BA_fpr", test_fpr, step=self.i_epoch)
                     mlflow.log_metric("test_BA_fnr", test_fnr, step=self.i_epoch)
                     #cf_img = Image.open(cf_savepath)
-                    #mlflow.log_artifact(cf_savepath, "test_BF1_cf")
+                    mlflow.log_artifact(cf_savepath, "test_BF1_cf")
                     #print(cf_savepath)
                     # Log CF to mlflow
-                    log_cf_every = 1
-                    if (self.i_epoch + 1) % log_cf_every == 0:
-                        mlflow.log_image(pil_img_cf, "test_cf_" + str("f1") + "_" + str(self.i_epoch))
+                    # log_cf_every = 1
+                    # if (self.i_epoch + 1) % log_cf_every == 0:
+                    #     mlflow.log_image(pil_img_cf, "test_cf_" + str("f1") + "_" + str(self.i_epoch))
 
                 except ValueError:
                     print("Only one class prediced (bad training) for ", str(weights_save_model_name))
