@@ -42,7 +42,7 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
 
     if args.train_test_mode == "train":
         # MlFlow Parameters
-        mlruns_folder = "../output/mlruns"
+        mlruns_folder = os.path.join(args_train["output_directory"], "mlruns")# "../output/mlruns"
         mlflow_experiment_name = args.mlflow_experiment_name
         mlflow_run_name = args_train["run_name"]
 
@@ -102,7 +102,7 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
         ##################
         optimizer_type = args_train["optimizer_type"]
         if args_train["aggregation"] == "max" or args_train["aggregation"] == "mean" or args_train["aggregation"] == "attention" or args_train["aggregation"] == "TransMIL" or args_train["aggregation"] == "TransMIL_Pablo":
-            trainer = TransMIL_trainer(dir_out=args_train["dir_out"], network=network, model_save_name=args_train["run_name"],
+            trainer = TransMIL_trainer(dir_out=args_train["dir_out_run"], network=network, model_save_name=args_train["run_name"],
                                        aggregation=args_train["aggregation"],
                                        lr=args_train["lr"],
                                        alpha_ce=args.alpha_ce, id=id,
@@ -119,7 +119,7 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
                           pred_column=args_train["pred_column"], pred_mode=args_train["pred_mode"], loss_function=args.loss_function)
 
         elif args_train["aggregation"] == "Patch_GCN_online":
-            trainer = Patch_GCN_online_trainer(dir_out=args_train["dir_out"], network=network, model_save_name=args_train["run_name"],
+            trainer = Patch_GCN_online_trainer(dir_out=args_train["dir_out_run"], network=network, model_save_name=args_train["run_name"],
                                                lr=args_train["lr"], aggregation=args_train["aggregation"],
                                                alpha_ce=args.alpha_ce, id=id,
                                                early_stopping=args.early_stopping, scheduler=args.scheduler,
@@ -137,7 +137,7 @@ def train_exp(args_train, dataset_train, data_generator_train, dataset_val, data
                           pred_column=args_train["pred_column"], pred_mode=args_train["pred_mode"], loss_function=args.loss_function)
 
         elif args_train["aggregation"] == "Patch_GCN_offline":
-            trainer = Patch_GCN_offline_trainer(dir_out=args_train["dir_out"], network=network, model_save_name=args_train["run_name"],
+            trainer = Patch_GCN_offline_trainer(dir_out=args_train["dir_out_run"], network=network, model_save_name=args_train["run_name"],
                                                 lr=args_train["lr"], aggregation=args_train["aggregation"],
                                                 alpha_ce=args.alpha_ce, id=id,
                                                 early_stopping=args.early_stopping, scheduler=args.scheduler,
@@ -273,6 +273,8 @@ def main_cv(args):
                                     os.mkdir(dir_out_main)
                                 if not os.path.isdir(dir_out):
                                     os.mkdir(dir_out)
+
+                                #TODO: change ArgParser to dict (see full dataset))
 
                                 # Create argument parser for training
                                 parser_train = argparse.ArgumentParser()
@@ -429,7 +431,9 @@ def main_cv(args):
                                     "pred_mode": pred_mode,
                                     "balanced_train_datagen": args.balanced_train_datagen,
                                     "tissue_percentages_max": args.tissue_percentages_max,
-                                    "dir_out": dir_out_run,
+                                    "dir_out_exp": dir_out_exp,
+                                    "dir_out_run": dir_out_run,
+                                    "output_directory": output_directory,
                                     "pred_column": args.pred_column,
                                     "magnification_level": args.magnification_level
                                 }
