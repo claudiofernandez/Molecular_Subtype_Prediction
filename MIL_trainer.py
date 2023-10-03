@@ -185,7 +185,8 @@ class TransMIL_trainer():
                                           pred_mode=self.pred_mode,
                                           aggregation=self.aggregation,
                                           results_save_path=self.dir_results,
-                                          best_model_type="auc")
+                                          best_model_type="auc",
+                                          i_epoch="train_end")
 
         except ValueError:
             print("Only one class prediced (bad training) for " , str(weights2eval_best_auc_path))
@@ -197,7 +198,8 @@ class TransMIL_trainer():
                                               pred_mode=self.pred_mode,
                                               aggregation=self.aggregation,
                                               results_save_path=self.dir_results,
-                                              best_model_type="f1")
+                                              best_model_type="f1",
+                                              i_epoch="train_end")
         except ValueError:
             print("Only one class prediced (bad training) for " , str(weights2eval_best_auc_path))
 
@@ -271,7 +273,8 @@ class TransMIL_trainer():
                                                   results_save_path=self.dir_results,
                                                   best_model_type="auc",
                                                   return_params=True,
-                                                  show_cf=False)
+                                                  show_cf=False,
+                                                  epoch=self.i_epoch)
                     mlflow.log_metric("test_BA_auc", test_roc_auc_score, step=self.i_epoch)
                     mlflow.log_metric("test_BA_f1", test_f1_score_w, step=self.i_epoch)
                     mlflow.log_metric("test_BA_recall", test_recall, step=self.i_epoch)
@@ -624,7 +627,8 @@ class Patch_GCN_online_trainer():
                                       results_save_path=self.dir_results,
                                       best_model_type="auc",
                                       node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                      knn=self.knn)
+                                      knn=self.knn,
+                                      i_epoch="train_end")
 
         # except ValueError:
         #     print("Only one class prediced (bad training) for " , str(weights2eval_best_auc_path))
@@ -638,7 +642,8 @@ class Patch_GCN_online_trainer():
                                           results_save_path=self.dir_results,
                                           best_model_type="f1",
                                           node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                          knn=self.knn)
+                                          knn=self.knn,
+                                          i_epoch="train_end")
 
         # except ValueError:
         #     print("Only one class prediced (bad training) for " , str(weights2eval_best_auc_path))
@@ -711,7 +716,8 @@ class Patch_GCN_online_trainer():
                                                   return_params=True,
                                                   show_cf=False,
                                                   node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                                  knn=self.knn)
+                                                  knn=self.knn,
+                                                  i_epoch=self.i_epoch)
 
                     mlflow.log_metric("test_BA_auc", test_roc_auc_score, step=self.i_epoch)
                     mlflow.log_metric("test_BA_f1", test_f1_score_w, step=self.i_epoch)
@@ -753,7 +759,8 @@ class Patch_GCN_online_trainer():
                                                   return_params=True,
                                                   show_cf=False,
                                                   node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                                  knn=self.knn)
+                                                  knn=self.knn,
+                                                  i_epoch=self.i_epoch)
 
                     mlflow.log_metric("test_BF1_auc", test_roc_auc_score, step=self.i_epoch)
                     mlflow.log_metric("test_BF1_f1", test_f1_score_w, step=self.i_epoch)
@@ -1082,7 +1089,8 @@ class Patch_GCN_offline_trainer():
                                                   return_params=True,
                                                   show_cf=False,
                                                   node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                                  knn=self.knn)
+                                                  knn=self.knn,
+                                                  i_epoch=self.i_epoch)
 
                     mlflow.log_metric("test_BA_auc", test_roc_auc_score, step=self.i_epoch)
                     mlflow.log_metric("test_BA_f1", test_f1_score_w, step=self.i_epoch)
@@ -1116,7 +1124,8 @@ class Patch_GCN_offline_trainer():
                                                   return_params=True,
                                                   show_cf=False,
                                                   node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                                  knn=self.knn)
+                                                  knn=self.knn,
+                                                  i_epoch=self.i_epoch)
 
                     mlflow.log_metric("test_BF1_auc", test_roc_auc_score, step=self.i_epoch)
                     mlflow.log_metric("test_BF1_f1", test_f1_score_w, step=self.i_epoch)
@@ -1171,7 +1180,9 @@ class Patch_GCN_offline_trainer():
                                       results_save_path=self.dir_results,
                                       best_model_type="auc",
                                       node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                      knn=self.knn)
+                                      knn=self.knn,
+                                      i_epoch=self.i_epoch)
+
 
         # except ValueError:
         #     print("Only one class prediced (bad training) for " , str(weights2eval_best_auc_path))
@@ -1185,7 +1196,8 @@ class Patch_GCN_offline_trainer():
                                           results_save_path=self.dir_results,
                                           best_model_type="f1",
                                           node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                          knn=self.knn)
+                                          knn=self.knn,
+                                          i_epoch=self.i_epoch)
 
         # except ValueError:
         #     print("Only one class prediced (bad training) for " , str(weights2eval_best_auc_path))
@@ -1456,7 +1468,8 @@ class TransMIL_trainer_w_features():
                                           pred_mode=self.pred_mode,
                                           aggregation=self.aggregation,
                                           results_save_path=self.dir_results,
-                                          best_model_type="auc")
+                                          best_model_type="auc",
+                                          i_epoch="train_end")
 
         except ValueError:
             print("Only one class prediced (bad training) for " , str(weights2eval_best_auc_path))
@@ -1468,7 +1481,8 @@ class TransMIL_trainer_w_features():
                                               pred_mode=self.pred_mode,
                                               aggregation=self.aggregation,
                                               results_save_path=self.dir_results,
-                                              best_model_type="f1")
+                                              best_model_type="f1",
+                                              i_epoch="train_end")
         except ValueError:
             print("Only one class prediced (bad training) for " , str(weights2eval_best_auc_path))
 
@@ -1540,7 +1554,9 @@ class TransMIL_trainer_w_features():
                                                   results_save_path=self.dir_results,
                                                   best_model_type="auc",
                                                   return_params=True,
-                                                  show_cf=False)
+                                                  show_cf=False,
+                                                  i_epoch=self.i_epoch)
+
                     mlflow.log_metric("test_BA_auc", test_roc_auc_score, step=self.i_epoch)
                     mlflow.log_metric("test_BA_f1", test_f1_score_w, step=self.i_epoch)
                     mlflow.log_metric("test_BA_recall", test_recall, step=self.i_epoch)
@@ -1580,7 +1596,8 @@ class TransMIL_trainer_w_features():
                                                   results_save_path=self.dir_results,
                                                   best_model_type="f1",
                                                   return_params=True,
-                                                  show_cf=False)
+                                                  show_cf=False,
+                                                  i_epoch=self.i_epoch)
 
                     mlflow.log_metric("test_BF1_auc", test_roc_auc_score, step=self.i_epoch)
                     mlflow.log_metric("test_BF1_f1", test_f1_score_w, step=self.i_epoch)
