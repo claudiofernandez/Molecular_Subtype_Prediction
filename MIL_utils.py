@@ -8,7 +8,6 @@ import argparse
 import mlflow
 import random
 import cv2
-
 from matplotlib import pyplot as plt
 from PIL import Image
 from tqdm import tqdm
@@ -257,6 +256,11 @@ def eval_bag_level_classification(test_generator, network, weights2eval_path, pr
         plt.savefig(cf_savepath, bbox_inches='tight')
         if show_cf:
             plt.show()
+
+        # Log CF to mlflow
+        pil_img_cf = Image.frombytes('RGB',
+                            fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
+        mlflow.log_image(pil_img_cf, "test_cf_" + str(best_model_type) + "_" + str(i_epoch))
 
         if pred_mode=="OTHERvsTNBC":
         # Calculate Negative Predictive Value (NPV)

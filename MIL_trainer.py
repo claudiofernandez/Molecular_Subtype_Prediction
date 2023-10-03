@@ -290,7 +290,7 @@ class TransMIL_trainer():
                     #print(cf_savepath)
                     #print(os.getcwd())
                     #hola = "/home/clferma/Documents/MIL_global_labels/data/results/MolSub 5x Aggr MeanMax 3CLF CV LR New/PM_LUMINALSvsHER2vsTNBC_AGGR_mean_ML_5x_NN_bb_vgg16_FBB_False_PS_512_DA_non-spatial_SN_False_L_auc_E_100_LR_0002_Order_True_Optim_sgd_N_3_BDG_True_OWD_0_TP_O_0.4-T_1-S_1-I_1-N_1/CVFold_1/test_cfsn_matrix_best_auc.png"
-                    mlflow.log_artifact(cf_savepath, "test_BA_cf")
+                    #mlflow.log_artifact(cf_savepath, "test_BA_cf")
                     #print(f"artifact_uri={mlflow.get_artifact_uri()}")
                     #print(cf_savepath)
 
@@ -336,7 +336,7 @@ class TransMIL_trainer():
                     mlflow.log_metric("test_BA_fpr", test_fpr, step=self.i_epoch)
                     mlflow.log_metric("test_BA_fnr", test_fnr, step=self.i_epoch)
                     #cf_img = Image.open(cf_savepath)
-                    mlflow.log_artifact(cf_savepath, "test_BF1_cf")
+                    #mlflow.log_artifact(cf_savepath, "test_BF1_cf")
                     #print(cf_savepath)
 
                 except ValueError:
