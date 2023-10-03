@@ -259,11 +259,16 @@ def eval_bag_level_classification(test_generator, network, weights2eval_path, pr
 
         # Log CF to mlflow
         log_cf_every = 1
-        if (i_epoch + 1) % log_cf_every == 0:
+        if type(i_epoch) == str: # Training finished
             pil_img_cf = Image.frombytes('RGB',
-                                fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
+                                         fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
+
         else:
-            pil_img_cf = None
+            if (i_epoch + 1) % log_cf_every == 0: # Log every log_cf_every epochs
+                pil_img_cf = Image.frombytes('RGB',
+                                    fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
+            else:
+                pil_img_cf = None
 
         if pred_mode=="OTHERvsTNBC":
         # Calculate Negative Predictive Value (NPV)
