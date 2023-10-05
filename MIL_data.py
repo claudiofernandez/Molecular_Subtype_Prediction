@@ -674,7 +674,12 @@ class MILDataset_w_class_perc_coords(object):
 
 
         # Comment if executing locally
-        selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/", "../data/") for path in selected_images_paths]
+        #TODO: add where_exec param
+        #TODO: change all paths relative to where_exec
+        selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/",
+                                              "../data/BCNB/preprocessing_results_bien/") for path in
+                                 selected_images_paths]
+        #selected_images_paths = [path.replace("D:/CLAUDIO/BREAST_CANCER_DATASETS/BCNB/preprocessing_results_bien/", "../data/") for path in selected_images_paths]
 
         self.images_paths = selected_images_paths
 
