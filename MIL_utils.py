@@ -41,7 +41,7 @@ from torch_geometric.data import Data as geomData
 from itertools import chain
 from torch.nn import Linear, LayerNorm, ReLU
 from torch_geometric.nn import GCNConv, GraphConv, GatedGraphConv, GATConv, SGConv, GINConv, GENConv, DeepGCNLayer
-
+import igraph as ig
 # Models
 import torch.nn as nn
 import torchvision.models as models
