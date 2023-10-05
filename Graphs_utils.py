@@ -1,11 +1,12 @@
 from MIL_trainer import *
 from MIL_models import *
 from MIL_data import *
+from MIL_utils import *
 
 class WSI2Graph_Generator():
 
     def __init__(self, pred_column, regions_filled, bag_id, pred_mode, patch_size, data_augmentation, stain_normalization, max_instances, images_on_ram, include_background,
-                 balanced_datagen, tissue_percentages_max,feature_extractor_name, num_workers, feature_extractor_path, model_weights_filename, knn_list, magnification_level,
+                 balanced_datagen, tissue_percentages_max,feature_extractor_name, num_workers, feature_extractor_dir, model_weights_filename, knn_list, magnification_level,
                  include_edge_features, edges_type, dir_data_frame, dir_dataset_splitting, dir_excels_class_perc, dir_results):
 
         super(WSI2Graph_Generator, self).__init__()
@@ -32,7 +33,8 @@ class WSI2Graph_Generator():
 
         # Graph parameters
         self.feature_extractor_name = feature_extractor_name
-        self.feature_extractor_path = feature_extractor_path
+        self.feature_extractor_dir = feature_extractor_dir
+        self.feature_extractor_path = os.path.join(feature_extractor_dir, feature_extractor_name)
         self.model_weights_filename = model_weights_filename
         self.knn_list = knn_list
         self.magnification_level =magnification_level # [BCNB] 5x, 10x, 20x
@@ -55,7 +57,7 @@ class WSI2Graph_Generator():
             self.dir_images = "../data/BCNB/preprocessing_results_bien/patches_" + str(self.patch_size) + "_fullWSIs_0/"  # '../data/patches_' + str(patch_size) + '_fullWSIs_0/'
 
         #TODO: Add graph name and save fur definition based on the parameters
-        self.graph_name = "tbd"
+        self.graph_name = "graphs_" + self.feature_extractor_name.split("network_weights_best_f1.pth")[0]
         self.dir_results_save_graph = os.path.join(dir_results, self.graph_name)
 
         # Create dirs for saving resulting graphs
@@ -166,6 +168,32 @@ class WSI2Graph_Generator():
 
         print("hola")
 
+    def show_channel_first_patch_from_list(self, list_of_patches, patch_idx):
+        plt.imshow(np.transpose(list_of_patches[patch_idx], (1, 2, 0)))
+        plt.show()
+        
+    def show_graph_igraph(self, G):
+        G_nx = torch_geometric.utils.to_networkx(G, to_undirected=True) # convert to NetowrkX Graph
+
+        G_ig = ig.Graph.from_networkx(G_nx) # Import NX graph
+
+        communities = G_ig.community_edge_betweenness() # extrat communities
+        communities = communities.as_clustering()
+
+        # Plot
+        fig1, ax1 = plt.subplots()
+        ig.plot(
+            communities,
+            target=ax1,
+            mark_groups=True,
+            vertex_size=0.1,
+            edge_width=0.5
+            #layout=G_ig.layout("rt")
+        )
+        fig1.set_size_inches(20, 20)
+
+        plt.show()
+
     def create_graphs(self, knn_list, data_generator, dir_results_save_graph, feature_extractor_name, feature_extractor_path, include_edge_features):
 
         # Iterate over K list
@@ -173,6 +201,8 @@ class WSI2Graph_Generator():
             # Iterate over data generator
             for i_iteration, (patient_id, X, Y, X_augm, img_coords) in enumerate(tqdm(data_generator, leave=True, position=0)):
                 graph_savename = patient_id + "_graph.pt"  # "SUS" +  patient_id.zfill(3) + "_graph.pt"
+                dir_folder_savegraphs_k = os.path.join(dir_results_save_graph, "graphs_k_" + str(k))
+                os.makedirs(dir_folder_savegraphs_k, exist_ok=True)
                 if not os.path.isfile(os.path.join(dir_results_save_graph, graph_savename)):
                     if X_augm is None:
                         X_augm = torch.tensor(X)  # .to('cuda')
@@ -188,13 +218,14 @@ class WSI2Graph_Generator():
 
                     else:
                         graph_creator = imgs2graph(backbone=feature_extractor_name, pretrained=True, knn=k)  # .cuda()
+
                     graph_from_bag = graph_creator(X_augm, img_coords)  # .to('cuda')
 
                     # save graphs as .pt files
-                    torch.save(graph_from_bag, os.path.join(dir_results_save_graph, graph_savename))
+                    torch.save(graph_from_bag, os.path.join(dir_folder_savegraphs_k, graph_savename))
 
+                    print("hola")
 
-        return graph
 
 # Feature extractor for graph creation
 class Encoder(torch.nn.Module):
@@ -214,53 +245,17 @@ class Encoder(torch.nn.Module):
         self.pretrained = pretrained
         self.pretrained_fe_path = pretrained_fe_path
 
-        if pretrained_fe_path is not None:
-
-            if self.backbone=="mean_aggr_vgg16_02_05":
+        if pretrained_fe_path is not None: # Pretrained FEs
+            if "vgg16" in self.backbone:
                 vgg16_BM = torch.load(self.pretrained_fe_path)
-                #vgg16_BM.eval()
                 self.F = vgg16_BM.bb
                 self.F.to('cuda')
-
-            elif self.backbone=="mean_aggr_resnet50_02_05":
+            elif "resnet50" in self.backbone:
                 resnet50_BM = torch.load(self.pretrained_fe_path)
-                #vgg16_BM.eval()
                 self.F = resnet50_BM.bb
                 self.F.to('cuda')
 
-            elif self.backbone=="mean_aggr_17_03":
-                vgg16_BM = torch.load(self.pretrained_fe_path)
-                #vgg16_BM.eval()
-                self.F = vgg16_BM.bb
-                self.F.to('cuda')
-
-            elif self.backbone=="self_sup_histopath":
-                RETURN_PREACTIVATION = True  # return features from the model, if false return classification logits
-                NUM_CLASSES = 4  # only used if RETURN_PREACTIVATION = False
-                # Load pretrained model weights
-                model = torchvision.models.__dict__['resnet18'](pretrained=False)
-
-                state = torch.load(self.pretrained_fe_path, map_location='cuda:0')
-
-                state_dict = state['state_dict']
-                for key in list(state_dict.keys()):
-                    state_dict[key.replace('model.', '').replace('resnet.', '')] = state_dict.pop(key)
-
-                model = load_model_weights(model, state_dict)
-
-                # Choose if you want logits or features
-                if RETURN_PREACTIVATION:
-                    model.fc = torch.nn.Sequential()
-                else:
-                    model.fc = torch.nn.Linear(model.fc.in_features, NUM_CLASSES)
-
-                # Send model to CUDA
-                model = model.cuda()
-
-                self.F = model
-
-        else:
-
+        else: # Pretrained backbones on imagenet
             if self.backbone == "resnet50_3blocks_1024":
                 resnet = torchvision.models.resnet50(pretrained=True)
                 if "3blocks" in self.backbone:
@@ -273,7 +268,6 @@ class Encoder(torch.nn.Module):
                                                  resnet.layer3)
                 else:
                     self.F = resnet
-
             elif self.backbone == 'vgg16_512':
                 vgg16 = torchvision.models.vgg16(pretrained=True)
                 self.F = vgg16.features
@@ -286,7 +280,6 @@ class Encoder(torch.nn.Module):
         else:
             #features = torch.nn.AdaptiveAvgPool2d((1, 1))(features)
             return features
-
 
 class imgs2graph_w_edgefeatures_norm(torch.nn.Module):
     def __init__(self, backbone='vgg19', pretrained=True, knn=8, pretrained_fe_path=None):
@@ -305,17 +298,15 @@ class imgs2graph_w_edgefeatures_norm(torch.nn.Module):
             self.bb = Encoder(backbone=self.backbone, pretrained=self.pretrained)
             self.bb.eval()
 
-    def forward(self, images, img_coords, batch_size=2):
+    def forward(self, images, img_coords, batch_size=1):
         # Coordinates of all the patches in the bag
         coords = img_coords
 
         # Patch-Level feature extraction
-        #features = self.bb(images.to('cuda'))
-
-        # Patch-Level feature extraction
         num_images = images.shape[0]
+        print("Extracting features from " + str(num_images) + " images for building WSI-graphs...")
         features = []
-        for i in range(0, num_images, batch_size):
+        for i in tqdm(range(0, num_images, batch_size)):
             batch_images = images[i:i + batch_size].to('cuda')
             batch_features = self.bb(batch_images)
             features.append(batch_features)
@@ -371,13 +362,6 @@ class imgs2graph_w_edgefeatures_norm(torch.nn.Module):
         return G
 
 
-
-
-
-
-
-
-
 if __name__ == '__main__':
 
     wsi_graph_g = WSI2Graph_Generator(pred_column="Molecular subtype",
@@ -385,25 +369,25 @@ if __name__ == '__main__':
                                         bag_id="Patient ID",
                                         pred_mode="OTHERvsTNBC", #OTHERvsTNBC,LUMINALSvsHER2vsTNBC, LUMINALAvsLAUMINALBvsHER2vsTNBC
                                         patch_size=512,
-                                        data_augmentation ="non-spatial",
-                                        max_instances = np.inf,
+                                        data_augmentation=False, #"non-spatial"
+                                        max_instances=420, #np.inf: all patches from bags
                                         stain_normalization = False,
                                         images_on_ram = False,
                                         include_background = False,
                                         balanced_datagen = False,
                                         tissue_percentages_max = "O_0.4-T_1-S_1-I_1-N_1",
-                                        num_workers=16,
-                                        feature_extractor_name="PM_OTHERvsTNBC_BB_vgg16_AGGR_attention_LR_0.002_OPT_sgd_T_full_dataset_D_BCNB_E_100_L_cross_entropy_OWD_0_FBB_False_PT_True_MAGN_10x_N_100_AUGM_non-spatial_SN_False_BAL_True",
-                                        feature_extractor_path="Z:/Shared_PFC-TFG-TFM/Claudio/MOLSUB_PRED/output/[03_10_2023]_MolSub_SLURM_full",
+                                        num_workers=200,
+                                        feature_extractor_name="PM_OTHERvsTNBC_BB_vgg16_AGGR_attention_LR_0.002_OPT_sgd_T_full_dataset_D_BCNB_E_100_L_cross_entropy_OWD_0_FBB_False_PT_True_MAGN_10x_N_100_Anetwork_weights_best_f1.pth",
+                                        feature_extractor_dir="../output/feature_extractors",
                                         model_weights_filename="network_weights_best_f1.pth",
-                                        knn_list=[5, 8, 19, 25, 50, 75],
+                                        knn_list=[8, 19, 25],
                                         magnification_level="10x",
                                         include_edge_features = True,
                                         edges_type = "spatial",
                                         dir_data_frame = "../data/BCNB/patient-clinical-data.xlsx",
                                         dir_dataset_splitting="../data/BCNB/dataset-splitting",
                                         dir_excels_class_perc="../data/BCNB/patches_paths_class_perc/",
-                                        dir_results="../data/BCNB/results_graphs_november_23"
+                                        dir_results="../output/results_graphs_november_23"
                                     )
 
 
