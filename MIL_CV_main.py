@@ -4,12 +4,18 @@ from MIL_data import *
 from MIL_models import *
 from MIL_trainer import *
 
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 def main_cv(args):
-    # Effective training
-    np.random.seed(42)
-    random.seed(42)
-    torch.manual_seed(42)
-    CUDA_LAUNCH_BLOCKING = 1
+
+    # Set seeds for reproducibility
+    set_seed(42)
 
     ##############################################
     # Set directories and parameters for the data #
