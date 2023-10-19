@@ -226,7 +226,6 @@ class WSI2Graph_Generator():
 
                     print("hola")
 
-
 # Feature extractor for graph creation
 class Encoder(torch.nn.Module):
     """Feature extractor for Graph cration.
@@ -389,6 +388,61 @@ if __name__ == '__main__':
                                         dir_excels_class_perc="../data/BCNB/patches_paths_class_perc/",
                                         dir_results="../output/results_graphs_november_23"
                                     )
+
+
+    wsi_graph_g = WSI2Graph_Generator(pred_column="Molecular subtype",
+                                        regions_filled="fullWSIs_TP_0",
+                                        bag_id="Patient ID",
+                                        pred_mode="OTHERvsTNBC", #OTHERvsTNBC,LUMINALSvsHER2vsTNBC, LUMINALAvsLAUMINALBvsHER2vsTNBC
+                                        patch_size=512,
+                                        data_augmentation=False, #"non-spatial"
+                                        max_instances=420, #np.inf: all patches from bags
+                                        stain_normalization = False,
+                                        images_on_ram = False,
+                                        include_background = False,
+                                        balanced_datagen = False,
+                                        tissue_percentages_max = "O_0.4-T_1-S_1-I_1-N_1",
+                                        num_workers=200,
+                                        feature_extractor_name="PM_LUMINALSvsHER2vsTNBC_BB_vgg16_AGGR_attention_LR_0.002_OPT_sgd_T_full_dataset_D_BCNB_E_100_L_cross_entropy_OWD_0_FBB_False_PT_True_MAGN_10network_weights_best_f1.pth",
+                                        feature_extractor_dir="../output/feature_extractors",
+                                        model_weights_filename="network_weights_best_f1.pth",
+                                        knn_list=[8, 19, 25],
+                                        magnification_level="10x",
+                                        include_edge_features = True,
+                                        edges_type = "spatial",
+                                        dir_data_frame = "../data/BCNB/patient-clinical-data.xlsx",
+                                        dir_dataset_splitting="../data/BCNB/dataset-splitting",
+                                        dir_excels_class_perc="../data/BCNB/patches_paths_class_perc/",
+                                        dir_results="../output/results_graphs_november_23"
+                                    )
+
+    wsi_graph_g = WSI2Graph_Generator(pred_column="Molecular subtype",
+                                        regions_filled="fullWSIs_TP_0",
+                                        bag_id="Patient ID",
+                                        pred_mode="OTHERvsTNBC", #OTHERvsTNBC,LUMINALSvsHER2vsTNBC, LUMINALAvsLAUMINALBvsHER2vsTNBC
+                                        patch_size=512,
+                                        data_augmentation=False, #"non-spatial"
+                                        max_instances=420, #np.inf: all patches from bags
+                                        stain_normalization = False,
+                                        images_on_ram = False,
+                                        include_background = False,
+                                        balanced_datagen = False,
+                                        tissue_percentages_max = "O_0.4-T_1-S_1-I_1-N_1",
+                                        num_workers=200,
+                                        feature_extractor_name="PM_LUMINALAvsLAUMINALBvsHER2vsTNBC_BB_vgg16_AGGR_attention_LR_0.002_OPT_sgd_T_full_dataset_D_BCNB_E_100_L_cross_entropy_OWD_0_FBB_False_PT_Tnetwork_weights_best_f1.pth",
+                                        feature_extractor_dir="../output/feature_extractors",
+                                        model_weights_filename="network_weights_best_f1.pth",
+                                        knn_list=[8, 19, 25],
+                                        magnification_level="10x",
+                                        include_edge_features = True,
+                                        edges_type = "spatial",
+                                        dir_data_frame = "../data/BCNB/patient-clinical-data.xlsx",
+                                        dir_dataset_splitting="../data/BCNB/dataset-splitting",
+                                        dir_excels_class_perc="../data/BCNB/patches_paths_class_perc/",
+                                        dir_results="../output/results_graphs_november_23"
+                                    )
+
+
 
 
 
