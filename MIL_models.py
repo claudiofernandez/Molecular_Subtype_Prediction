@@ -527,6 +527,121 @@ class Attn_Net_Gated(nn.Module):
         A = self.attention_c(A)  # N x n_classes
         return A, x
 
+class PatchGCN_MeanMax_LSelec(torch.nn.Module):
+    def __init__(self, input_dim=2227, num_layers=4, edge_agg='spatial', multires=False, resample=0,
+                 fusion=None, num_features=1024, hidden_dim=128, linear_dim=64, use_edges=False, pool=False,
+                 dropout=0.25, n_classes=4, pooling='mean', last_layer_dropout=True, include_edge_features=False,
+                 gnn_layer_type='GENConv'):
+        super(PatchGCN_MeanMax_LSelec, self).__init__()
+        self.use_edges = use_edges
+        self.fusion = fusion
+        self.pool = pool
+        self.edge_agg = edge_agg
+        self.multires = multires
+        self.num_layers = num_layers - 1
+        self.resample = resample
+        self.num_features = num_features
+        self.pooling = pooling  # new parameter for pooling
+        self.last_layer_dropout = last_layer_dropout
+        self.include_edge_features = include_edge_features
+        self.gnn_layer_type = gnn_layer_type
+        self.n_classes = n_classes
+
+        if self.resample > 0:
+            self.fc = nn.Sequential(*[nn.Dropout(self.resample), nn.Linear(self.num_features, 256), nn.ReLU(), nn.Dropout(0.25)])
+        else:
+            self.fc = nn.Sequential(*[nn.Linear(self.num_features, 128), nn.ReLU(), nn.Dropout(0.25)])
+
+        self.layers = torch.nn.ModuleList()
+        for i in range(1, self.num_layers + 1):
+            if self.gnn_layer_type == 'GCNConv':
+                conv = GCNConv(hidden_dim, hidden_dim)
+            elif self.gnn_layer_type == 'SAGEConv':
+                conv = SAGEConv(hidden_dim, hidden_dim)
+            elif self.gnn_layer_type == 'GATConv':
+                conv = GATConv(hidden_dim, hidden_dim, dropout=0.2) #GATConv(hidden_dim, hidden_dim // 2, dropout=0.2)
+            elif self.gnn_layer_type == 'GINConv':
+                mlp = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, hidden_dim))
+                conv = GINConv(mlp)
+            elif self.gnn_layer_type == 'GENConv':
+                conv = GENConv(hidden_dim, hidden_dim, aggr='softmax',
+                               t=1.0, learn_t=True, num_layers=2, norm='layer')
+            elif self.gnn_layer_type == 'GraphConv':
+                conv = GraphConv(hidden_dim, hidden_dim)
+            else:
+                raise ValueError("Invalid GNN layer specified.")
+
+            norm = LayerNorm(hidden_dim, elementwise_affine=True)
+            act = ReLU(inplace=True)
+            layer = DeepGCNLayer(conv, norm, act, block='res', dropout=0.1, ckpt_grad=i % 3)
+            self.layers.append(layer)
+
+        # Change to test with variable num_gcn_layers
+        self.path_phi = nn.Sequential(*[nn.Linear(hidden_dim * num_layers, hidden_dim * num_layers), nn.ReLU(), nn.Dropout(0.25)])
+
+        self.path_attention_head = Attn_Net_Gated(L=hidden_dim * num_layers, D=hidden_dim * num_layers, dropout=dropout, n_classes=self.n_classes)
+        self.path_rho = nn.Sequential(*[nn.Linear(hidden_dim * num_layers, hidden_dim * num_layers), nn.ReLU(), nn.Dropout(dropout)])
+
+        self.classifier = torch.nn.Linear(hidden_dim * num_layers, n_classes)
+
+        # Chane
+        if self.pooling == 'attention':
+            input_dim = 128 * ( self.num_layers + 1 )
+            self.aggregation = MILAggregation(input_dim=input_dim)
+
+    def forward(self, graph, edge_aggr='spatial', pool='mean'):
+        self.edge_agg = edge_aggr
+
+        if self.edge_agg == 'spatial':
+            edge_index = graph['edge_index']
+        elif self.edge_agg == 'latent':
+            edge_index = graph['edge_latent']
+
+        if self.include_edge_features:
+            edge_attr = graph['edge_features']
+        else:
+            edge_attr = None # Aquí se podrían pasar los edge attributes (aka cuanta distancia)
+
+        # My version
+        x = self.fc(graph['x'])
+        x_ = x
+
+        x = self.layers[0].conv(x_, edge_index, edge_attr)
+        x_ = torch.cat([x_, x], axis=1)
+        for layer in self.layers[1:]:
+            x = layer(x, edge_index, edge_attr)
+            x_ = torch.cat([x_, x], axis=1)
+
+        h_path = x_
+        h_path = self.path_phi(h_path)
+
+        A_path, h_path = self.path_attention_head(h_path)
+        A_path = torch.transpose(A_path, 1, 0)
+
+        if self.pooling == 'att':
+            h_path_att = torch.mm(F.softmax(A_path, dim=1), h_path) # De la softmax se puede sacar el mapa de calor de los parches mas relevantes del attention.
+            h = self.path_rho(h_path_att).squeeze()
+        if self.pooling == 'attention':
+            h_path_att, attention_weights = self.aggregation(h_path)
+            #h = h_path_att
+            h = self.path_rho(h_path_att).squeeze()
+        elif self.pooling == 'mean':
+            h_path_mean = torch.mean(h_path, dim=0)
+            h = self.path_rho(h_path_mean).squeeze()
+        elif self.pooling == 'max':
+            h_path_max = torch.max(h_path, dim=0)[0]
+            h = self.path_rho(h_path_max).squeeze()
+        else:
+            raise ValueError("Invalid pooling method specified.")
+
+        logits = self.classifier(h).unsqueeze(0)
+        Y_hat = torch.topk(logits, 1, dim=1)[1]
+        Y_prob = F.softmax(logits, dim=1)
+
+        return Y_prob, Y_hat, logits
+
+
+
 ##############################
 # TransMIL Models 11_07_2023 #
 ##############################
@@ -605,7 +720,6 @@ class TransLayer(nn.Module):
         x = x + self.attn(self.norm(x))
         return x
 
-
 class PPEG(nn.Module):
     def __init__(self, dim=512):
         super(PPEG, self).__init__()
@@ -622,412 +736,3 @@ class PPEG(nn.Module):
         x = torch.cat((cls_token.unsqueeze(1), x), dim=1)
         return x
 
-
-
-
-
-
-# ###################
-# # TransMIL Models #
-# ###################
-#
-# class TransMILArchitecture(nn.Module):
-#     def __init__(self, n_classes, n_channels=3, transmil_bb="resnet50", pretrained_bb=True, freeze_bb_weights=False):
-#         super(TransMILArchitecture, self).__init__()
-#         self.L = 512  # 512 node fully connected layer
-#         self.D = 128  # 128 node attention layer
-#         self.K = 1
-#         self.sqrtN = 12  # size for squaring
-#         self.n_classes = n_classes
-#         self.n_channels = n_channels
-#         self.transmil_bb = transmil_bb
-#         self.pretrained_bb = pretrained_bb
-#
-#         # Set up feature extractor
-#         if transmil_bb == "resnet50":
-#             resnet50 = models.resnet50(pretrained=self.pretrained_bb)
-#             # freeze weights from feature extractor
-#             if freeze_bb_weights:
-#                 for param in resnet50.parameters():
-#                     param.requires_grad = False
-#
-#             modules = list(resnet50.children())[:-3]
-#             self.feature_extractor = nn.Sequential(
-#                 *modules,
-#                 nn.AdaptiveAvgPool2d(1),
-#                 View((-1, 1024)),
-#                 nn.Linear(1024, self.L)
-#             )
-#
-#         elif transmil_bb == "vgg16":
-#             vgg16 = models.vgg16(pretrained=self.pretrained_bb)
-#             # freeze weights from feature extractor
-#             if freeze_bb_weights:
-#                 for param in vgg16.parameters():
-#                     param.requires_grad = False
-#
-#             #self.feature_extractor = vgg16.features
-#             self.feature_extractor = nn.Sequential(
-#                 vgg16.features,
-#                 nn.AdaptiveAvgPool2d(1))
-#
-#         elif transmil_bb == "vgg19":
-#             vgg19 = models.vgg19(pretrained=self.pretrained_bb)
-#             # freeze weights from feature extractor
-#             if freeze_bb_weights:
-#                 for param in vgg19.parameters():
-#                     param.requires_grad = False
-#
-#             # self.feature_extractor = vgg16.features
-#             self.feature_extractor = nn.Sequential(
-#                 vgg19.features,
-#                 nn.AdaptiveAvgPool2d(1))
-#
-#         self.class_token = nn.Parameter(torch.zeros(1, 1, 512))
-#
-#         self.nystromer1 = Nystromformer(dim=self.L, depth=1)
-#         self.nystromer2 = Nystromformer(dim=self.L, depth=1)
-#         self.grp_conv1 = nn.Conv2d(512, 512, 3, padding=1)
-#         self.grp_conv2 = nn.Conv2d(512, 512, 5, padding=2)
-#         self.grp_conv3 = nn.Conv2d(512, 512, 7, padding=3)
-#         self.ln = nn.LayerNorm(self.L)
-#         if self.n_classes == 2:
-#
-#             self.fc = nn.Linear(self.L, 1)
-#         else:
-#             self.fc = nn.Linear(self.L, self.n_classes)
-#
-#     def forward(self, x):
-#
-#         #x = x.squeeze(0)
-#         if self.n_channels == 1:
-#             x = torch.cat((x, x, x), 1)
-#
-#         try:
-#             Hf = self.feature_extractor(x)
-#         except ValueError:
-#             print("hola que tal")
-#
-#         Hf = Hf.squeeze(1)  # 512 features (Patch tokens: each patch's features)
-#
-#         ##################################################
-#         # Squaring
-#         ####################################################
-#
-#         N = np.square(self.sqrtN)
-#         while Hf.shape[0] != N:
-#             if Hf.shape[0] > N:  # some of our WSIs have more than N patches, but most have less
-#                 Hf = Hf[:N, :]
-#             else:
-#                 d = N - Hf.shape[0]
-#                 missing = Hf[:d, :]
-#                 Hf = torch.cat((Hf, missing), 0)
-#         Hf = Hf.squeeze().unsqueeze(0)
-#         Hs = torch.cat((self.class_token, Hf), 1)
-#
-#         ####################################################
-#         # MSA
-#         ####################################################
-#         Hs = self.nystromer1(Hs) + Hs
-#         ####################################################
-#         # PPEG
-#         ####################################################
-#         Hc, Hf = torch.split(Hs, [1, Hs.shape[1] - 1], 1) #Hc: Class token; Hf: Patch token
-#         Hf = Hf.view(1, -1, self.sqrtN, self.sqrtN)
-#
-#         Hf1 = self.grp_conv1(Hf)
-#         Hf2 = self.grp_conv2(Hf)
-#         Hf3 = self.grp_conv3(Hf)
-#         Hfs = Hf1 + Hf2 + Hf3
-#
-#         Hfs = Hfs.view(1, N, -1)
-#         Hs = torch.cat((Hc, Hfs), 1)
-#
-#         ####################################################
-#         # MSA 2
-#         ####################################################
-#         Hs = self.nystromer1(Hs) + Hs
-#
-#         ####################################################
-#         # MLP
-#         ####################################################
-#         Hc, Hf = torch.split(Hs, [1, Hs.shape[1] - 1], 1)
-#         Hc = Hc.squeeze() # features
-#
-#         ## TODO: Probar a meter lo del Admin aquí, a ver si va mejor
-#
-#         logits = self.fc(self.ln(Hc)) #logits (reduce dimensionanilty from 1024 to 512????)
-#         Y_hat = torch.argmax(logits)
-#         Y_prob = F.softmax(logits, dim=0)
-#
-#         #Y_hat = torch.ge(output, 1 / self.n_classes).float()
-#
-#         return Y_prob, Y_hat, logits
-#
-# class Lookahead(Optimizer):
-#     r"""PyTorch implementation of the lookahead wrapper.
-#     Lookahead Optimizer: https://arxiv.org/abs/1907.08610
-#     """
-#
-#     def __init__(self, optimizer, la_steps=5, la_alpha=0.8, pullback_momentum="none"):
-#         """optimizer: inner optimizer
-#         la_steps (int): number of lookahead steps
-#         la_alpha (float): linear interpolation factor. 1.0 recovers the inner optimizer.
-#         pullback_momentum (str): change to inner optimizer momentum on interpolation update
-#         """
-#         self.optimizer = optimizer
-#         self._la_step = 0  # counter for inner optimizer
-#         self.la_alpha = la_alpha
-#         self._total_la_steps = la_steps
-#         pullback_momentum = pullback_momentum.lower()
-#         assert pullback_momentum in ["reset", "pullback", "none"]
-#         self.pullback_momentum = pullback_momentum
-#
-#         self.state = defaultdict(dict)
-#
-#         # Cache the current optimizer parameters
-#         for group in optimizer.param_groups:
-#             for p in group['params']:
-#                 param_state = self.state[p]
-#                 param_state['cached_params'] = torch.zeros_like(p.data)
-#                 param_state['cached_params'].copy_(p.data)
-#                 if self.pullback_momentum == "pullback":
-#                     param_state['cached_mom'] = torch.zeros_like(p.data)
-#
-#     def __getstate__(self):
-#         return {
-#             'state': self.state,
-#             'optimizer': self.optimizer,
-#             'la_alpha': self.la_alpha,
-#             '_la_step': self._la_step,
-#             '_total_la_steps': self._total_la_steps,
-#             'pullback_momentum': self.pullback_momentum
-#         }
-#
-#     def zero_grad(self):
-#         self.optimizer.zero_grad()
-#
-#     def get_la_step(self):
-#         return self._la_step
-#
-#     def state_dict(self):
-#         return self.optimizer.state_dict()
-#
-#     def load_state_dict(self, state_dict):
-#         self.optimizer.load_state_dict(state_dict)
-#
-#     def _backup_and_load_cache(self):
-#         """Useful for performing evaluation on the slow weights (which typically generalize better)
-#         """
-#         for group in self.optimizer.param_groups:
-#             for p in group['params']:
-#                 param_state = self.state[p]
-#                 param_state['backup_params'] = torch.zeros_like(p.data)
-#                 param_state['backup_params'].copy_(p.data)
-#                 p.data.copy_(param_state['cached_params'])
-#
-#     def _clear_and_load_backup(self):
-#         for group in self.optimizer.param_groups:
-#             for p in group['params']:
-#                 param_state = self.state[p]
-#                 p.data.copy_(param_state['backup_params'])
-#                 del param_state['backup_params']
-#
-#     @property
-#     def param_groups(self):
-#         return self.optimizer.param_groups
-#
-#     def step(self, closure=None):
-#         """Performs a single Lookahead optimization step.
-#         Arguments:
-#             closure (callable, optional): A closure that reevaluates the model
-#                 and returns the loss.
-#         """
-#         loss = self.optimizer.step(closure)
-#         self._la_step += 1
-#
-#         if self._la_step >= self._total_la_steps:
-#             self._la_step = 0
-#             # Lookahead and cache the current optimizer parameters
-#             for group in self.optimizer.param_groups:
-#                 for p in group['params']:
-#                     param_state = self.state[p]
-#                     p.data.mul_(self.la_alpha).add_(param_state['cached_params'], alpha=1.0 - self.la_alpha)  # crucial line
-#                     param_state['cached_params'].copy_(p.data)
-#                     if self.pullback_momentum == "pullback":
-#                         internal_momentum = self.optimizer.state[p]["momentum_buffer"]
-#                         self.optimizer.state[p]["momentum_buffer"] = internal_momentum.mul_(self.la_alpha).add_(
-#                             1.0 - self.la_alpha, param_state["cached_mom"])
-#                         param_state["cached_mom"] = self.optimizer.state[p]["momentum_buffer"]
-#                     elif self.pullback_momentum == "reset":
-#                         self.optimizer.state[p]["momentum_buffer"] = torch.zeros_like(p.data)
-#
-#         return loss
-#
-# class View(nn.Module):
-#     def __init__(self, shape):
-#         super().__init__()
-#         self.shape = shape
-#
-#     def forward(self, input):
-#         '''
-#         Reshapes the input according to the shape saved in the view data structure.
-#         '''
-#         batch_size = input.size(0)
-#         shape = (batch_size, *self.shape)
-#         out = input.view(shape)
-#         return out
-#
-# #########################
-# # TransMIL_Pablo Models #
-# #########################
-#
-# class TransMILArchitecture_Pablo(nn.Module):
-#     def __init__(self, n_classes, n_channels=3, transmil_bb="resnet50", pretrained_bb=True, freeze_bb_weights=False):
-#         super(TransMILArchitecture_Pablo, self).__init__()
-#         self.pos_layer = PPEG(dim=512).cuda()
-#         self._fc1 = nn.Sequential(nn.Linear(1024, 512), nn.ReLU())
-#         self.cls_token = nn.Parameter(torch.randn(1, 1, 512))
-#         self.n_classes = n_classes
-#         self.layer1 = TransLayer(dim=512).cuda()
-#         self.layer2 = TransLayer(dim=512).cuda()
-#         self.norm = nn.LayerNorm(512).cuda()
-#         self._fc2 = torch.nn.Sequential(
-#             torch.nn.Linear(512, self.n_classes).cuda()
-#         )
-#         self.n_classes = n_classes
-#         self.n_channels = n_channels
-#         self.transmil_bb = transmil_bb
-#         self.pretrained_bb = pretrained_bb
-#         self.freeze_bb_weights = freeze_bb_weights
-#         self.L = 512
-#
-#         #self.backbone_extractor = AI4SKINClassifier(in_channels=3, n_classes=1, n_blocks=5).cuda()
-#
-#
-#         # Set up feature extractor
-#         if transmil_bb == "resnet50":
-#             resnet50 = models.resnet50(pretrained=self.pretrained_bb)
-#             # freeze weights from feature extractor
-#             if freeze_bb_weights:
-#                 for param in resnet50.parameters():
-#                     param.requires_grad = False
-#
-#             modules = list(resnet50.children())[:-3]
-#             self.feature_extractor = nn.Sequential(
-#                 *modules,
-#                 nn.AdaptiveAvgPool2d(1),
-#                 View((-1, 1024)),
-#                 nn.Linear(1024, self.L)
-#             )
-#
-#         elif transmil_bb == "vgg16":
-#             vgg16 = models.vgg16(pretrained=self.pretrained_bb)
-#             # freeze weights from feature extractor
-#             if freeze_bb_weights:
-#                 for param in vgg16.parameters():
-#                     param.requires_grad = False
-#
-#             #self.feature_extractor = vgg16.features
-#             self.feature_extractor = nn.Sequential(
-#                 vgg16.features,
-#                 nn.AdaptiveAvgPool2d(1))
-#
-#         elif transmil_bb == "vgg19":
-#             vgg19 = models.vgg19(pretrained=self.pretrained_bb)
-#             # freeze weights from feature extractor
-#             if freeze_bb_weights:
-#                 for param in vgg19.parameters():
-#                     param.requires_grad = False
-#
-#             # self.feature_extractor = vgg16.features
-#             self.feature_extractor = nn.Sequential(
-#                 vgg19.features,
-#                 nn.AdaptiveAvgPool2d(1))
-#
-#     def forward(self, x):
-#         # h = kwargs['data'].float()  # [B, n, 1024]
-#
-#         #h = self.backbone_extractor(x)
-#         h = self.feature_extractor(x).squeeze()
-#         # h = self._fc1(h)  # [B, n, 512]
-#
-#         # Keep 1 dim if 1 image
-#         if len(h.shape)==1:
-#             h = h.unsqueeze(dim=0)
-#
-#         # ---->pad
-#         h = h.reshape(1, h.shape[0], -1)
-#         H = h.shape[1]
-#         _H, _W = int(np.ceil(np.sqrt(H))), int(np.ceil(np.sqrt(H)))
-#         add_length = _H * _W - H
-#         h = torch.cat([h, h[:, :add_length, :]], dim=1)  # [B, N, 512]
-#
-#         # ---->cls_token
-#         B = h.shape[0]
-#         cls_tokens = self.cls_token.expand(B, -1, -1).cuda()
-#         h = torch.cat((cls_tokens, h), dim=1)
-#
-#         # ---->Translayer x1
-#         h = self.layer1(h)  # [B, N, 512]
-#
-#         # ---->PPEG
-#         h = self.pos_layer(h, _H, _W)  # [B, N, 512]
-#
-#         # ---->Translayer x2
-#         h = self.layer2(h)  # [B, N, 512]
-#
-#         # ---->cls_token
-#         h = self.norm(h)[:, 0]  # .squeeze(dim = 0)
-#
-#         # ---->predict
-#         logits = self._fc2(h)  # [BS=1, n_classes]
-#         # Y_hat = torch.argmax(logits, dim=1)
-#         # Y_prob = F.softmax(logits, dim=1)
-#         # results_dict = {'logits': logits, 'Y_prob': Y_prob, 'Y_hat': Y_hat}
-#
-#         #return logits, h
-#
-#
-#         Y_hat = torch.argmax(logits)
-#         Y_prob = F.softmax(logits, dim=1)
-#
-#         return Y_prob, Y_hat, logits
-#
-# class TransLayer(nn.Module):
-#
-#     def __init__(self, norm_layer=nn.LayerNorm, dim=512,
-#                  dropout=0.1):  # voy a utilizar una VGG asi que la dimensión es 512
-#         super().__init__()
-#         self.norm = norm_layer(dim)
-#         self.attn = NystromAttention(
-#             dim=dim,
-#             dim_head=dim // 8,
-#             heads=8,
-#             num_landmarks=dim // 2,  # number of landmarks
-#             pinv_iterations=6,
-#             # number of moore-penrose iterations for approximating pinverse. 6 was recommended by the paper
-#             residual=True,
-#             # whether to do an extra residual with the value or not. supposedly faster convergence if turned on
-#             dropout=dropout
-#         ).cuda()
-#
-#     def forward(self, x):
-#         x = x + self.attn(self.norm(x))
-#         return x
-#
-# class PPEG(nn.Module):
-#     def __init__(self, dim=512):
-#         super(PPEG, self).__init__()
-#         self.proj = nn.Conv2d(dim, dim, 7, 1, 7 // 2, groups=dim)  # estudiar porque se utilizan estas convoluciones
-#         self.proj1 = nn.Conv2d(dim, dim, 5, 1, 5 // 2, groups=dim)
-#         self.proj2 = nn.Conv2d(dim, dim, 3, 1, 3 // 2, groups=dim)
-#
-#     def forward(self, x, H, W):
-#         B, _, C = x.shape
-#         cls_token, feat_token = x[:, 0], x[:, 1:]
-#         cnn_feat = feat_token.transpose(1, 2).view(B, C, H, W)
-#         x = self.proj(cnn_feat) + cnn_feat + self.proj1(cnn_feat) + self.proj2(cnn_feat)
-#         x = x.flatten(2).transpose(1, 2)
-#         x = torch.cat((cls_token.unsqueeze(1), x), dim=1)
-#         return x
