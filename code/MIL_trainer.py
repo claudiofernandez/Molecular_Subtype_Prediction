@@ -882,7 +882,7 @@ class Patch_GCN_online_trainer():
 
 class Patch_GCN_offline_trainer():
     def __init__(self, dir_out, network, model_save_name, class_weights, mlflow_run_name, aggregation,  lr=1*1e-4, alpha_ce=1, id='', early_stopping=False,
-                 scheduler=False, virtual_batch_size=1, criterion='auc', optimizer_type="adam", optimizer_weight_decay=0, knn=8, node_feature_extractor="resnet50_3blocks_1024"):
+                 scheduler=False, virtual_batch_size=1, criterion='auc', optimizer_type="adam", optimizer_weight_decay=0, knn=8):
         super(Patch_GCN_offline_trainer, self).__init__()
         self.dir_results = dir_out
         if not os.path.isdir(self.dir_results):
@@ -927,8 +927,6 @@ class Patch_GCN_offline_trainer():
 
         #Patch-GCN
         self.knn = knn
-        self.patch_gcn_node_feature_extractor = node_feature_extractor
-
 
         self.params = list(self.network.parameters())
         #self.optimizer = optim.Adam(self.params, lr=self.lr, betas=(0.9, 0.999), weight_decay=0.0005)
@@ -1098,10 +1096,7 @@ class Patch_GCN_offline_trainer():
                                                   results_save_path=self.dir_results,
                                                   best_model_type="auc",
                                                   return_params=True,
-                                                  show_cf=False,
-                                                  node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                                  knn=self.knn,
-                                                  i_epoch=self.i_epoch)
+                                                  show_cf=False)
 
                     mlflow.log_metric("test_BA_auc", test_roc_auc_score, step=self.i_epoch)
                     mlflow.log_metric("test_BA_f1", test_f1_score_w, step=self.i_epoch)
@@ -1133,10 +1128,7 @@ class Patch_GCN_offline_trainer():
                                                   results_save_path=self.dir_results,
                                                   best_model_type="f1",
                                                   return_params=True,
-                                                  show_cf=False,
-                                                  node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                                  knn=self.knn,
-                                                  i_epoch=self.i_epoch)
+                                                  show_cf=False)
 
                     mlflow.log_metric("test_BF1_auc", test_roc_auc_score, step=self.i_epoch)
                     mlflow.log_metric("test_BF1_f1", test_f1_score_w, step=self.i_epoch)
@@ -1189,10 +1181,7 @@ class Patch_GCN_offline_trainer():
                                       pred_mode=self.pred_mode,
                                       aggregation=self.aggregation,
                                       results_save_path=self.dir_results,
-                                      best_model_type="auc",
-                                      node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                      knn=self.knn,
-                                      i_epoch=self.i_epoch)
+                                      best_model_type="auc")
 
 
         # except ValueError:
@@ -1205,10 +1194,7 @@ class Patch_GCN_offline_trainer():
                                           pred_mode=self.pred_mode,
                                           aggregation=self.aggregation,
                                           results_save_path=self.dir_results,
-                                          best_model_type="f1",
-                                          node_feature_extractor=self.patch_gcn_node_feature_extractor,
-                                          knn=self.knn,
-                                          i_epoch=self.i_epoch)
+                                          best_model_type="f1")
 
         # except ValueError:
         #     print("Only one class prediced (bad training) for " , str(weights2eval_best_auc_path))
