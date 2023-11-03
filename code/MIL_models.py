@@ -530,7 +530,7 @@ class Attn_Net_Gated(nn.Module):
 class PatchGCN_MeanMax_LSelec(torch.nn.Module):
     def __init__(self, input_dim=2227, num_layers=4, edge_agg='spatial', multires=False, resample=0,
                  fusion=None, num_features=1024, hidden_dim=128, linear_dim=64, use_edges=False, pool=False,
-                 dropout=0.25, n_classes=4, pooling='mean', last_layer_dropout=True, include_edge_features=False,
+                 dropout=0.25, n_classes=4, pooling='mean', include_edge_features=False,
                  gnn_layer_type='GENConv'):
         super(PatchGCN_MeanMax_LSelec, self).__init__()
         self.use_edges = use_edges
@@ -542,7 +542,6 @@ class PatchGCN_MeanMax_LSelec(torch.nn.Module):
         self.resample = resample
         self.num_features = num_features
         self.pooling = pooling  # new parameter for pooling
-        self.last_layer_dropout = last_layer_dropout
         self.include_edge_features = include_edge_features
         self.gnn_layer_type = gnn_layer_type
         self.n_classes = n_classes
