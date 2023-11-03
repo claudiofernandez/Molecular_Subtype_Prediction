@@ -121,6 +121,13 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="root@158.42.170.253:2345 (1)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/workspace/MIL_global_labels/code" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="root@158.42.170.253:2346">
         <serverdata>
           <mappings>
@@ -128,7 +135,28 @@
           </mappings>
         </serverdata>
       </paths>
+      <paths name="root@158.42.170.253:3456">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="root@158.42.170.253:3456 agent">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
       <paths name="root@158.42.170.33:2232">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="root@158.42.170.33:2232 (1)">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />

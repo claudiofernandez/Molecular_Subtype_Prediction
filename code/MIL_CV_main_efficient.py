@@ -506,7 +506,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     #MLFlow configuration
-    parser.add_argument("--mlflow_experiment_name", default="[02_10_2023] BB MolSub 10x BCNB Final", type=str,  help='Name for experiment in MLFlow')
+    parser.add_argument("--mlflow_experiment_name", default="[02_11_2023] BB MolSub 10x BCNB Final", type=str,  help='Name for experiment in MLFlow')
 
     # Directories.
     parser.add_argument('--where_exec', type=str, default="dgx_gpu", help="slurm_dgx, slurm_nas, dgx_gpu or local")
@@ -527,10 +527,10 @@ if __name__ == '__main__':
     parser.add_argument("--alpha_ce", default=1., type=float)
 
     # Model configuration
-    parser.add_argument("--pred_modes", default="LUMINALSvsHER2vsTNBC", type=str, help="Comma-separated list of prediction modes. Choose (1 or more) between: 'LUMINALAvsLAUMINALBvsHER2vsTNBC', 'LUMINALSvsHER2vsTNBC', 'OTHERvsTNBC'")
-    parser.add_argument("--network_backbones", default='vgg16,resnet50', type=str, help="Comma-separated list of backbones. Choose (1 or more) betwwen: 'vgg16', 'resnet50'")
-    parser.add_argument("--magnification_level", default="5x", type=str, help="5x, 10x, 20x")
-    parser.add_argument("--aggregations", default="mean,max", type=str, help="Comma-separated list of MIL aggregations. Choose (1 or more) between: mean', 'max' 'attention', 'TransMIL'")
+    parser.add_argument("--pred_modes", default="OTHERvsTNBC", type=str, help="Comma-separated list of prediction modes. Choose (1 or more) between: 'LUMINALAvsLAUMINALBvsHER2vsTNBC', 'LUMINALSvsHER2vsTNBC', 'OTHERvsTNBC'")
+    parser.add_argument("--network_backbones", default='vgg16', type=str, help="Comma-separated list of backbones. Choose (1 or more) betwwen: 'vgg16', 'resnet50'")
+    parser.add_argument("--magnification_level", default="10x", type=str, help="5x, 10x, 20x")
+    parser.add_argument("--aggregations", default="mean", type=str, help="Comma-separated list of MIL aggregations. Choose (1 or more) between: mean', 'max' 'attention', 'TransMIL'")
 
     # MIL Parameters
     parser.add_argument("--bag_id", default="Patient ID", type=str, help="Identifier of Bags")
