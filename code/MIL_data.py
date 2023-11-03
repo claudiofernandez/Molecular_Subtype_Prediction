@@ -203,19 +203,16 @@ class MILDataGenerator_coords_rID(object):
 
 class MILDataset_offline_graphs(object):
 
-    def __init__(self, dir_graphs, data_frame, pred_column, pred_mode, magnification_level, classes, bag_id='Patient ID', input_shape=(3, 224, 224),
+    def __init__(self, dir_graphs, data_frame, pred_column, pred_mode, classes,
                  graphs_on_ram=False, channel_first=True):
 
         self.dir_graphs = dir_graphs
         self.data_frame = data_frame
         self.classes = classes
-        self.bag_id = bag_id
-        self.input_shape = input_shape
         self.graphs_on_ram = graphs_on_ram
         self.channel_first = channel_first
         self.pred_column = pred_column
         self.pred_mode = pred_mode
-        self.magnification_level = magnification_level
 
         # Select graphs from directory
         self.graphs_paths = os.listdir(self.dir_graphs)
@@ -268,7 +265,7 @@ class MILDataGenerator_offline_graphs_balanced(object):
             random.shuffle(self.dataset.data_frame)
         self._idx = 0
 
-    def __init__(self, dataset, pred_column, pred_mode, graphs_on_ram, batch_size=1,  shuffle=False, max_instances=50, num_workers=0, balanced=True ): #512
+    def __init__(self, dataset, pred_column, pred_mode, graphs_on_ram, batch_size=1,  shuffle=False, max_instances=100,):
         self.pred_column = pred_column
         self.pred_mode = pred_mode
         self.dataset = dataset
