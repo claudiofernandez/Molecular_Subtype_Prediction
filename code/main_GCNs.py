@@ -24,6 +24,8 @@ def main_gcns_cv(args):
         args.gnrl_data_dir = os.path.join("../data", args.dataset)
         output_directory = os.path.join("../output")
 
+    os.makedirs(output_directory, exist_ok=True) # create output directory
+
     # Get ground truth data
     if args.dataset == "BCNB":
         dir_data_frame = os.path.join(args.gnrl_data_dir, "ground_truth", "patient-clinical-data.xlsx")
@@ -111,6 +113,58 @@ def main_gcns_cv(args):
         network = PatchGCN_MeanMax_LSelec(**model_dict)
         print(network)
 
+        ############
+        #  MLFLOW  #
+        ############
+
+        mlflow_run_name = "GT_" + str(args.gcn_layer_type) + "_GL_" + str(args.num_gcn_layers) +  "_KNN_" + str(args.knn) \
+                   + "_EA_" + str(args.edge_agg) + "_EF_" + str(args.include_edge_features) + "_GP_" + str(args.graph_pooling) \
+                   + "_DO_" + str(args.drop_out) + "_LR_" + str(args.lr).replace(".", "") + "_Optim_" + str(args.optimizer_type) \
+                   + "_OWD_" + str(args.optimizer_weight_decay)+ "_CVFold_" + str(fold_id)
+
+        # Get MLFlow arguments
+        mlflow_experiment_name = args.mlflow_experiment_name
+        mlflow_server_url = args.mlflow_server_url
+
+        # Set up MLFlow server location, Otherwise location of ./mlruns
+        mlflow.set_tracking_uri(mlflow_server_url)
+
+        # Create MLFlow experiment
+        mlflow.set_experiment(experiment_name=mlflow_experiment_name)
+
+        # Start MLFlow run
+        mlflow.start_run(run_name=mlflow_run_name)  # If not provided, run_name will be randomly assigned
+
+        # Log MLFlow Parameters
+        for key, value in vars(args).items():
+            mlflow.log_param(key, value)
+
+        ##################
+        # Start Training #
+        ##################
+
+        # Prepare output directories
+        dir_out_exp = os.path.join(output_directory, args.mlflow_experiment_name)
+        dir_out_run = os.path.join(dir_out_exp, mlflow_run_name)
+        os.makedirs(dir_out_exp, exist_ok=True)
+        os.makedirs(dir_out_run, exist_ok=True)
+
+
+        trainer = Patch_GCN_offline_trainer(dir_out=dir_out_run, network=network, model_save_name=mlflow_run_name,
+                                            lr=args.lr, aggregation=args.aggregation,
+                                            alpha_ce=args.alpha_ce, id=id,
+                                            early_stopping=args.early_stopping, scheduler=args.scheduler,
+                                            virtual_batch_size=args.virtual_batch_size,
+                                            criterion=args.criterion,
+                                            class_weights=None,
+                                            optimizer_type=args.optimizer_type,
+                                            optimizer_weight_decay=args.optimizer_weight_decay,
+                                            mlflow_run_name=mlflow_run_name,
+                                            knn=args.knn)
+
+        trainer.train(train_generator=data_generator_train, val_generator=data_generator_val,
+                      test_generator=data_generator_test, epochs=args.epochs, model_save_name=mlflow_run_name,
+                      pred_column=args.pred_column, pred_mode=args.pred_mode, loss_function=args.loss_function)
 
         print("hola")
 
@@ -140,10 +194,16 @@ if __name__ == '__main__':
     parser.add_argument('--shuffle', default=False, type=lambda x: (str(x).lower() == 'true'), help="Load data on RAM memory.")
     parser.add_argument("--aggregation", default='Patch_GCN_offline', type=str)  # max, mean, TransMIL, TransMIL_pablo, Patch_GCN_online, Patch_GCN_offline
     parser.add_argument("--pred_mode", default="OTHERvsTNBC", type=str)  # "LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"
-    parser.add_argument("--epochs", default=100, type=int, help="Number of epochs for training")
+    parser.add_argument("--epochs", default=2, type=int, help="Number of epochs for training")
+    parser.add_argument("--loss_function", default="cross_entropy", type=str)  # cross_entropy, kll
     parser.add_argument("--lr", default="0.0001", type=float, help="Learning rate")  #  [0.00002, 0.00001, 0.0002, 0.0001]
     parser.add_argument("--criterion", default='auc', type=str, help="Metric to keep the best model: 'auc', 'f1'")
-
+    parser.add_argument("--optimizer_type", default='adam', type=str)  # sgd, adam, lookahead_radam
+    parser.add_argument("--optimizer_weight_decay", default=0.00001, type=float)
+    parser.add_argument("--alpha_ce", default=1., type=float)
+    parser.add_argument("--early_stopping", default=True, type=lambda x: (str(x).lower() == 'true'))
+    parser.add_argument("--scheduler", default=True, type=lambda x: (str(x).lower() == 'true'))
+    parser.add_argument("--virtual_batch_size", default=1, type=int)
 
     # Graph Configuration
     parser.add_argument('--knn', type=int, default=8, help='# of K nearest neighbours for graph creation.')  # 8, 19, 25
@@ -155,6 +215,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_gcn_layers', type=int, default=4, help='# of GCN layers to use.')  # [4, 5]
     parser.add_argument('--graph_pooling', type=str, default="mean", help="mean, max, attention")  # TODO: CHECK Graph pooling
     parser.add_argument('--drop_out', default=True, type=lambda x: (str(x).lower() == 'true'), help='Enable dropout (p=0.25)')
+
 
 
     args = parser.parse_args()
