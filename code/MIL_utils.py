@@ -62,6 +62,37 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+def get_train_val_test_ids_dfs(fold_id, files_folds_splitting_ids, dir_cv_dataset_splitting_path, dir_data_frame, pred_column):
+    print(f"[CV FOLD {fold_id}]")
+    # Retrieve dataset split for each fold
+    train_file = [f for f in files_folds_splitting_ids if f.startswith(f"fold_{fold_id}_train")][0]
+    val_file = [f for f in files_folds_splitting_ids if f.startswith(f"fold_{fold_id}_val")][0]
+    test_file = [f for f in files_folds_splitting_ids if f.startswith(f"fold_{fold_id}_test")][0]
+
+    with open(os.path.join(dir_cv_dataset_splitting_path, train_file), "r") as f:
+        train_ids = f.read().splitlines()
+
+    with open(os.path.join(dir_cv_dataset_splitting_path, val_file), "r") as f:
+        val_ids = f.read().splitlines()
+
+    with open(os.path.join(dir_cv_dataset_splitting_path, test_file), "r") as f:
+        test_ids = f.read().splitlines()
+
+    # Convert IDs from strings to ints
+    train_ids = [int(id) for id in train_ids]
+    val_ids = [int(id) for id in val_ids]
+    test_ids = [int(id) for id in test_ids]
+
+    # Read GT DataFrame
+    df = pd.read_excel(dir_data_frame)
+    df = df[df[pred_column].notna()]  # Clean the rows including NaN values in the column that we want to predict
+
+    # Select df rows by train, test, val split
+    train_ids_df = df[df["Patient ID"].isin(train_ids)]  # [:100]#.sample(30)
+    val_ids_df = df[df["Patient ID"].isin(val_ids)]  # [:50]#.sample(20)
+    test_ids_df = df[df["Patient ID"].isin(test_ids)]  # [:50]#.sample(20)
+
+    return train_ids_df, val_ids_df, test_ids_df
 
 def get_train_test_val_ids(dataset_splitting_path):
     """
