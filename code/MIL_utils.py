@@ -382,7 +382,7 @@ def eval_bag_level_classification(test_generator, network, weights2eval_path, pr
         if return_params:
             return test_roc_auc_score, test_cohen_kappa_score, test_accuracy_score, test_f1_score_w, test_recall, test_precision, cf_savepath, test_ppv, test_npv, test_specificity, test_tpr, test_tnr, test_fpr, test_fnr
 
-def eval_bag_level_classification_offline_graphs(test_generator, network, weights2eval_path, pred_column, pred_mode, results_save_path, best_model_type, aggregation, binary=False, return_params=False, show_cf=False, node_feature_extractor=None, knn=None):
+def eval_bag_level_classification_offline_graphs(test_generator, network, weights2eval_path, pred_column, pred_mode, results_save_path, best_model_type, aggregation, return_params=False, show_cf=False):
 
     """
     Evaluates a PyTorch network for bag level classification task.
