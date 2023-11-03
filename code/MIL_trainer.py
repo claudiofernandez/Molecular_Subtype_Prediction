@@ -1084,7 +1084,7 @@ class Patch_GCN_offline_trainer():
                 weights_save_model_name = 'network_weights_best_auc.pth'
 
                 torch.save(self.network, os.path.join(self.dir_results, weights_save_model_name))
-
+                mlflow.log_artifact(os.path.join(self.dir_results, weights_save_model_name))
                 # After saving best model, test and report to MLFlow
                 try:
 
@@ -1118,6 +1118,7 @@ class Patch_GCN_offline_trainer():
                 weights_save_model_name = 'network_weights_best_f1.pth'
 
                 torch.save(self.network, os.path.join(self.dir_results, weights_save_model_name))
+                mlflow.log_artifact(os.path.join(self.dir_results, weights_save_model_name))
                 # After saving best model, test and report to MLFlow
                 try:
                     test_roc_auc_score, test_cohen_kappa_score, test_accuracy_score, test_f1_score_w, test_recall, test_precision, cf_savepath = eval_bag_level_classification_offline_graphs(test_generator=self.test_generator,

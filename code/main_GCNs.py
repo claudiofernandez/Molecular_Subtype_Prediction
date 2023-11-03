@@ -166,9 +166,6 @@ def main_gcns_cv(args):
                       test_generator=data_generator_test, epochs=args.epochs, model_save_name=mlflow_run_name,
                       pred_column=args.pred_column, pred_mode=args.pred_mode, loss_function=args.loss_function)
 
-        print("hola")
-
-
 
 if __name__ == '__main__':
 
@@ -194,7 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('--shuffle', default=False, type=lambda x: (str(x).lower() == 'true'), help="Load data on RAM memory.")
     parser.add_argument("--aggregation", default='Patch_GCN_offline', type=str)  # max, mean, TransMIL, TransMIL_pablo, Patch_GCN_online, Patch_GCN_offline
     parser.add_argument("--pred_mode", default="OTHERvsTNBC", type=str)  # "LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"
-    parser.add_argument("--epochs", default=2, type=int, help="Number of epochs for training")
+    parser.add_argument("--epochs", default=100, type=int, help="Number of epochs for training")
     parser.add_argument("--loss_function", default="cross_entropy", type=str)  # cross_entropy, kll
     parser.add_argument("--lr", default="0.0001", type=float, help="Learning rate")  #  [0.00002, 0.00001, 0.0002, 0.0001]
     parser.add_argument("--criterion", default='auc', type=str, help="Metric to keep the best model: 'auc', 'f1'")
@@ -215,8 +212,6 @@ if __name__ == '__main__':
     parser.add_argument('--num_gcn_layers', type=int, default=4, help='# of GCN layers to use.')  # [4, 5]
     parser.add_argument('--graph_pooling', type=str, default="mean", help="mean, max, attention")  # TODO: CHECK Graph pooling
     parser.add_argument('--drop_out', default=True, type=lambda x: (str(x).lower() == 'true'), help='Enable dropout (p=0.25)')
-
-
 
     args = parser.parse_args()
     main_gcns_cv(args)
