@@ -193,7 +193,7 @@ if __name__ == '__main__':
     parser.add_argument("--pred_mode", default="OTHERvsTNBC", type=str)  # "LUMINALAvsLAUMINALBvsHER2vsTNBC", "LUMINALSvsHER2vsTNBC", "OTHERvsTNBC"
     parser.add_argument("--epochs", default=100, type=int, help="Number of epochs for training")
     parser.add_argument("--loss_function", default="cross_entropy", type=str)  # cross_entropy, kll
-    parser.add_argument("--lr", default="0.0001", type=float, help="Learning rate")  #  [0.00002, 0.00001, 0.0002, 0.0001]
+    parser.add_argument("--lr", default=0.0001, type=float, help="Learning rate")  #  [0.00002, 0.00001, 0.0002, 0.0001]
     parser.add_argument("--criterion", default='auc', type=str, help="Metric to keep the best model: 'auc', 'f1'")
     parser.add_argument("--optimizer_type", default='adam', type=str)  # sgd, adam, lookahead_radam
     parser.add_argument("--optimizer_weight_decay", default=0.00001, type=float)
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     # Graph Configuration
     parser.add_argument('--knn', type=int, default=8, help='# of K nearest neighbours for graph creation.')  # 8, 19, 25
     parser.add_argument('--edge_agg', type=str, default='spatial', help="What edge relationship to use for aggregation.")  # It is possible to use spatial or latent edge aggregation
-    parser.add_argument('--include_edge_features',  default=False, help='Include edge_features (euclidean dist) in the graph')
+    parser.add_argument('--include_edge_features',  default=False, type=lambda x: (str(x).lower() == 'true'), help='Include edge_features (euclidean dist) in the graph')
 
     # GCN Configuration
     parser.add_argument('--gcn_layer_type', type=str, default="GCNConv", help='Type of GCN layers to use.')  # ['GCNConv', 'SAGEConv', 'GATConv', 'GINConv', 'GENConv', 'GraphConv']
