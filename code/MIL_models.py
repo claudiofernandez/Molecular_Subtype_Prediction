@@ -617,12 +617,8 @@ class PatchGCN_MeanMax_LSelec(torch.nn.Module):
         A_path, h_path = self.path_attention_head(h_path)
         A_path = torch.transpose(A_path, 1, 0)
 
-        if self.pooling == 'att':
-            h_path_att = torch.mm(F.softmax(A_path, dim=1), h_path) # De la softmax se puede sacar el mapa de calor de los parches mas relevantes del attention.
-            h = self.path_rho(h_path_att).squeeze()
         if self.pooling == 'attention':
-            h_path_att, attention_weights = self.aggregation(h_path)
-            #h = h_path_att
+            h_path_att = torch.mm(F.softmax(A_path, dim=1), h_path) # De la softmax se puede sacar el mapa de calor de los parches mas relevantes del attention.
             h = self.path_rho(h_path_att).squeeze()
         elif self.pooling == 'mean':
             h_path_mean = torch.mean(h_path, dim=0)
