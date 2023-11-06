@@ -12,7 +12,7 @@ def main_gcns_cv(args):
     # Set up directories depending on where this program is executed
     if args.where_exec == "slurm_nas":
         args.gnrl_data_dir = os.path.join('/workspace/NASFolder', args.dataset)
-        output_directory = os.path.join(args.gnrl_data_dir, "output")
+        output_directory = os.path.join('/workspace/NASFolder', "output")
     elif args.where_exec == "slurm_dgx":
         #TODO: change so it is not directly BCNB here
         args.gnrl_data_dir = os.path.join('/workspace/DGXFolder', args.dataset)
