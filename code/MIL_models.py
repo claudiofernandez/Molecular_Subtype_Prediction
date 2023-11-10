@@ -518,12 +518,14 @@ class Attn_Net_Gated(nn.Module):
 
         self.attention_a = nn.Sequential(*self.attention_a)
         self.attention_b = nn.Sequential(*self.attention_b)
-        self.attention_c = nn.Linear(D, n_classes)
+        #self.attention_c = nn.Linear(D, n_classes)
+        self.attention_c = nn.Linear(D, 1)
 
     def forward(self, x):
         a = self.attention_a(x)
         b = self.attention_b(x)
         A = a.mul(b)
+
         A = self.attention_c(A)  # N x n_classes
         return A, x
 
@@ -583,10 +585,10 @@ class PatchGCN_MeanMax_LSelec(torch.nn.Module):
 
         self.classifier = torch.nn.Linear(hidden_dim * num_layers, n_classes)
 
-        # Chane
-        if self.pooling == 'attention':
-            input_dim = 128 * ( self.num_layers + 1 )
-            self.aggregation = MILAggregation(input_dim=input_dim)
+        # # Chane
+        # if self.pooling == 'attention':
+        #     input_dim = 128 * ( self.num_layers + 1 )
+        #     self.aggregation = MILAggregation(input_dim=input_dim)
 
     def forward(self, graph, edge_aggr='spatial', pool='mean'):
         self.edge_agg = edge_aggr
@@ -614,10 +616,9 @@ class PatchGCN_MeanMax_LSelec(torch.nn.Module):
         h_path = x_
         h_path = self.path_phi(h_path)
 
-        A_path, h_path = self.path_attention_head(h_path)
-        A_path = torch.transpose(A_path, 1, 0)
-
         if self.pooling == 'attention':
+            A_path, h_path = self.path_attention_head(h_path)
+            A_path = torch.transpose(A_path, 1, 0)
             h_path_att = torch.mm(F.softmax(A_path, dim=1), h_path) # De la softmax se puede sacar el mapa de calor de los parches mas relevantes del attention.
             h = self.path_rho(h_path_att).squeeze()
         elif self.pooling == 'mean':

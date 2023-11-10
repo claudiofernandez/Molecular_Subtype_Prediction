@@ -175,7 +175,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     #MLFlow configuration
-    parser.add_argument("--mlflow_experiment_name", default="[02_11_2023] GCNs", type=str,  help='Name for experiment in MLFlow')
+    parser.add_argument("--mlflow_experiment_name", default="[Dev] GCNs", type=str,  help='Name for experiment in MLFlow')
     parser.add_argument('--mlflow_server_url', type=str, default="http://158.42.170.104:8002", help='URL of MLFlow DB')
 
     # General Configuration
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     # GCN Configuration
     parser.add_argument('--gcn_layer_type', type=str, default="GCNConv", help='Type of GCN layers to use.')  # ['GCNConv', 'SAGEConv', 'GATConv', 'GINConv', 'GENConv', 'GraphConv']
     parser.add_argument('--num_gcn_layers', type=int, default=4, help='# of GCN layers to use.')  # [4, 5]
-    parser.add_argument('--graph_pooling', type=str, default="mean", help="mean, max, attention")  # TODO: CHECK Graph pooling
+    parser.add_argument('--graph_pooling', type=str, default="attention", help="mean, max, attention")  # TODO: CHECK Graph pooling
     parser.add_argument('--drop_out', default=True, type=lambda x: (str(x).lower() == 'true'), help='Enable dropout (p=0.25)')
 
     args = parser.parse_args()
