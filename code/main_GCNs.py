@@ -160,7 +160,7 @@ def main_gcns_cv(args):
                                             optimizer_type=args.optimizer_type,
                                             optimizer_weight_decay=args.optimizer_weight_decay,
                                             mlflow_run_name=mlflow_run_name,
-                                            knn=args.knn)
+                                            knn=args.knn, mlflow_log_models=args.mlflow_log_models)
 
         trainer.train(train_generator=data_generator_train, val_generator=data_generator_val,
                       test_generator=data_generator_test, epochs=args.epochs, model_save_name=mlflow_run_name,
@@ -177,6 +177,7 @@ if __name__ == '__main__':
     #MLFlow configuration
     parser.add_argument("--mlflow_experiment_name", default="[Dev] GCNs", type=str,  help='Name for experiment in MLFlow')
     parser.add_argument('--mlflow_server_url', type=str, default="http://158.42.170.104:8002", help='URL of MLFlow DB')
+    parser.add_argument('--mlflow_log_models', default=False, type=lambda x: (str(x).lower() == 'true'), help="Log best models .pth as artifacts")
 
     # General Configuration
     parser.add_argument('--where_exec', type=str, default="local", help="slurm_dgx, slurm_nas, dgx_gpu or local")

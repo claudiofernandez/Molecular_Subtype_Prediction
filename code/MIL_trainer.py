@@ -882,7 +882,7 @@ class Patch_GCN_online_trainer():
 
 class Patch_GCN_offline_trainer():
     def __init__(self, dir_out, network, model_save_name, class_weights, mlflow_run_name, aggregation,  lr=1*1e-4, alpha_ce=1, id='', early_stopping=False,
-                 scheduler=False, virtual_batch_size=1, criterion='auc', optimizer_type="adam", optimizer_weight_decay=0, knn=8):
+                 scheduler=False, virtual_batch_size=1, criterion='auc', optimizer_type="adam", optimizer_weight_decay=0, knn=8, mlflow_log_models=True):
         super(Patch_GCN_offline_trainer, self).__init__()
         self.dir_results = dir_out
         if not os.path.isdir(self.dir_results):
@@ -923,7 +923,8 @@ class Patch_GCN_offline_trainer():
         self.criterion = criterion
         self.optimizer_type = optimizer_type
         self.optimizer_weight_decay = optimizer_weight_decay
-        self.mlflow_run_name=mlflow_run_name
+        self.mlflow_run_name = mlflow_run_name
+        self.mlflow_log_models = mlflow_log_models
 
         #Patch-GCN
         self.knn = knn
@@ -1084,7 +1085,8 @@ class Patch_GCN_offline_trainer():
                 weights_save_model_name = 'network_weights_best_auc.pth'
 
                 torch.save(self.network, os.path.join(self.dir_results, weights_save_model_name))
-                mlflow.log_artifact(os.path.join(self.dir_results, weights_save_model_name))
+                if self.mlflow_log_models:
+                    mlflow.log_artifact(os.path.join(self.dir_results, weights_save_model_name))
                 # After saving best model, test and report to MLFlow
                 try:
 
@@ -1118,7 +1120,8 @@ class Patch_GCN_offline_trainer():
                 weights_save_model_name = 'network_weights_best_f1.pth'
 
                 torch.save(self.network, os.path.join(self.dir_results, weights_save_model_name))
-                mlflow.log_artifact(os.path.join(self.dir_results, weights_save_model_name))
+                if self.mlflow_log_models:
+                    mlflow.log_artifact(os.path.join(self.dir_results, weights_save_model_name))
                 # After saving best model, test and report to MLFlow
                 try:
                     test_roc_auc_score, test_cohen_kappa_score, test_accuracy_score, test_f1_score_w, test_recall, test_precision, cf_savepath = eval_bag_level_classification_offline_graphs(test_generator=self.test_generator,
