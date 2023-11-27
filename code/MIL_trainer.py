@@ -1023,7 +1023,7 @@ class Patch_GCN_offline_trainer():
             self.on_epoch_end()
 
             if self.early_stopping: # if criterion does not improve for 20 epochs the training is stopped
-                if self.i_epoch + 1 == (self.best_epoch + 30):
+                if self.i_epoch + 1 == (self.best_epoch + 50):
                     break
 
         # End MLFlow run
