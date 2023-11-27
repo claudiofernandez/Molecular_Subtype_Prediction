@@ -50,7 +50,11 @@ def main_gcns_cv(args):
                     graphs_dir = os.path.join(mode_graphs_dir, k_data_folder)
 
     # Prepare CV folds
-    dir_cv_dataset_splitting_path = os.path.join(args.gnrl_data_dir, "new_CV_folds_BCNB")
+    if args.training_type == "CV":
+        dir_cv_dataset_splitting_path = os.path.join(args.gnrl_data_dir, "new_CV_folds_BCNB")
+    elif args.training_type == "full_dataset":
+        dir_cv_dataset_splitting_path = os.path.join(args.gnrl_data_dir, "dataset-splitting")
+
     files_folds_splitting_ids = os.listdir(dir_cv_dataset_splitting_path)
     folds_ids = np.unique(np.array([fold.split("_")[1] for fold in files_folds_splitting_ids])) # find the unique folds ids
 
@@ -209,7 +213,7 @@ if __name__ == '__main__':
     parser.add_argument('--include_edge_features',  default=False, type=lambda x: (str(x).lower() == 'true'), help='Include edge_features (euclidean dist) in the graph')
 
     # GCN Configuration
-    parser.add_argument('--gcn_layer_type', type=str, default="GCNConv", help='Type of GCN layers to use.')  # ['GCNConv', 'SAGEConv', 'GATConv', 'GINConv', 'GENConv', 'GraphConv']
+    parser.add_argument('--gcn_layer_type', type=str, default="GCNConv", help='Type of GCN layers to use.')  # ['GCNConv', 'GENConv', 'SAGEConv', 'GATConv', 'GINConv', 'GraphConv']
     parser.add_argument('--num_gcn_layers', type=int, default=4, help='# of GCN layers to use.')  # [4, 5]
     parser.add_argument('--graph_pooling', type=str, default="attention", help="mean, max, attention")  # TODO: CHECK Graph pooling
     parser.add_argument('--drop_out', default=True, type=lambda x: (str(x).lower() == 'true'), help='Enable dropout (p=0.25)')
