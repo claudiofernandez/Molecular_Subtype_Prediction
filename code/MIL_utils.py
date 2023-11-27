@@ -518,7 +518,7 @@ def eval_bag_level_classification_offline_graphs(test_generator, network, weight
 
         confusion_matrix_df = pd.DataFrame(cfsn_matrix).rename(columns=class2idx, index=class2idx)
         fig, ax = plt.subplots(figsize=(7, 5))
-        sns.heatmap(confusion_matrix_df, annot=True, ax=ax)
+        sns.heatmap(confusion_matrix_df, annot=True, ax=ax, cmap='Blues')
         cf_savepath = os.path.join(results_save_path, 'test_cfsn_matrix_best_' + str(best_model_type) + '.png')
         plt.savefig(cf_savepath, bbox_inches='tight')
         if show_cf:
